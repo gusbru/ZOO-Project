@@ -32,7 +32,7 @@ RUN wget -nv \
     https://repo.anaconda.com/miniconda/Miniconda3-py39_4.10.3-Linux-x86_64.sh \
     && bash Miniconda3-py39_4.10.3-Linux-x86_64.sh -b -p /usr/miniconda3 \
     && rm -f Miniconda3-py39_4.10.3-Linux-x86_64.sh
-ENV PATH="/usr/miniconda3/envs/ades-dev/bin:/usr/miniconda3/bin:${PATH}"
+ENV PATH="/usr/miniconda3/envs/${CONDA_ENV_NAME}/bin:/usr/miniconda3/bin:${PATH}"
 COPY docker/dru/ades-dev_env.yaml /tmp/ades-dev_env.yaml
 #ARG CONDA_ENV_NAME=$(cat /tmp/ades-dev_env.yaml | grep 'name:' | awk {'print $2'})
 RUN conda install mamba -n base -c conda-forge && \
@@ -48,11 +48,11 @@ RUN conda install mamba -n base -c conda-forge && \
         echo "    - cheetah3" >> /tmp/ades-dev_env.yaml ; \
         #cat /tmp/ades-dev_env.yaml ; \
         mamba env create --file /tmp/ades-dev_env.yaml ; \
-    fi  &&\
+    fi
     #ls -ailtr /usr/miniconda3/envs/ades-dev/bin/ && \
-    rm /tmp/ades-dev_env.yaml
+    #rm /tmp/ades-dev_env.yaml
 RUN ln -s /usr/miniconda3/envs/${CONDA_ENV_NAME}/bin/kubectl /usr/bin/kubectl
-
+RUN pip install git+https://github.com/EOEPCA/cwl-wrapper.git
 ########################################
 # ZOO_Prerequisites
 
@@ -103,6 +103,8 @@ apt-get install -qqy  --no-install-recommends software-properties-common\
 COPY . /opt/ZOO-Project
 WORKDIR /opt/ZOO-Project
 RUN make -C ./thirds/cgic206 libcgic.a
+RUN echo "CONDA_ENV_NAME=${CONDA_ENV_NAME}"
+RUN echo "PY_VER=${PY_VER}"
 RUN cd ./zoo-project/zoo-kernel \
      && autoconf \
      #&& grep MS_VERSION_ -rni /usr/ \
