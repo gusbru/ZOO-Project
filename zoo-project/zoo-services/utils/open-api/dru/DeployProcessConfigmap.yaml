@@ -6,6 +6,7 @@ metadata:
 data:
   DeploymentProcess.py: |+
     #
+    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -60,7 +61,7 @@ data:
     import json
     from pathlib import Path
     import sys
-    # from deploy_util import Process
+    from deploy_util import Process
     import yaml
     import requests
     import botocore
@@ -69,7 +70,7 @@ data:
     import os
 
 
-    class Process:
+    class Process2:
         def __init__(
             self,
             identifier,
@@ -219,9 +220,6 @@ data:
 
         @staticmethod
         def check_write_permissions(folder):
-            # TODO: remove
-            return 
-
             if not os.access(folder, os.W_OK):
                 errorMsg = f"Cannot write to {folder}. Please check folder"
                 print(errorMsg, file=sys.stderr)
@@ -230,10 +228,7 @@ data:
         def create_service_tmp_folder(self):
             # creating the folder where we will download the applicationPackage
             tmp_path = os.path.join(self.tmp_folder, f"DeployProcess-{self.process_id}")
-
-            # TODO: remove
-            return tmp_path
-            
+            print(f"creating the folder where we will download the applicationPackage {tmp_path}", file=sys.stderr)        
             try:
                 os.makedirs(tmp_path)
             except Exception as e:
@@ -248,16 +243,16 @@ data:
                 raise ValueError("The inputs dot not include applicationPackage")
 
             # loading cwl in yaml object
-            print("loading input payload in yaml object",file=sys.stderr)
-            # if "cache_file" in self.inputs["applicationPackage"]:
-            #     cwl_content = yaml.safe_load(open(self.inputs["applicationPackage"]["cache_file"]).read())
-            # else:
-            #     cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
-            payload = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            print("loading input payload in yaml object (CWL)",file=sys.stderr)
+            if "cache_file" in self.inputs["applicationPackage"]:
+                cwl_content = yaml.safe_load(open(self.inputs["applicationPackage"]["cache_file"]).read())
+            else:
+                cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            # payload = yaml.safe_load(self.inputs["applicationPackage"]["value"])
 
             print("Done loading input payload in yaml object",file=sys.stderr)
 
-            return payload
+            return cwl_content
 
         def generate_service(self):
 
@@ -323,13 +318,13 @@ data:
 
             # checking if service had already been deployed previously
             # if yes, delete it before redeploy the new one
-            print("checking if service had already been deployed previously (SKIPPED)",file=sys.stderr)
-            # old_service = os.path.join(self.zooservices_folder,self.service_configuration.identifier)
-            # if os.path.isdir(old_service):
-            #     print("service had already been deployed previously",file=sys.stderr)
-            #     shutil.rmtree(old_service)
-            #     if "metadb" not in self.conf:
-            #         os.remove(zcfg_file)
+            print("checking if service had already been deployed previously",file=sys.stderr)
+            old_service = os.path.join(self.zooservices_folder,self.service_configuration.identifier)
+            if os.path.isdir(old_service):
+                print("service had already been deployed previously",file=sys.stderr)
+                shutil.rmtree(old_service)
+                if "metadb" not in self.conf:
+                    os.remove(zcfg_file)
 
             if "metadb" in self.conf and not("noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"):
                 print("running sql",file=sys.stderr)
