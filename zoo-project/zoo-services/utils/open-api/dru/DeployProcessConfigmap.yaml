@@ -445,8 +445,9 @@ data:
             print(f"deploy_argo_workflow_template workspace = {workspace}", file=sys.stderr)
 
             workflow_config = WorkflowConfig(namespace=workspace)
+            print(f"workflow_config = {workflow_config.__dict__}", file=sys.stderr)
 
-            argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
+            # argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
 
             # argo_workflow.save_workflow_template(template_manifest=self.application_package)
 
