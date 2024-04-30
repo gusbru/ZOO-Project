@@ -286,9 +286,9 @@ def duplicateMessage(conf,deploy_process):
 
 def DeployProcess(conf, inputs, outputs):
     try:
-        print(f"conf = {conf}")
-        print(f"inputs = {inputs}")
-        print(f"outputs = {outputs}")
+        print(f"conf = {conf}", file=sys.stderr)
+        print(f"inputs = {inputs}", file=sys.stderr)
+        print(f"outputs = {outputs}", file=sys.stderr)
         if "applicationPackage" in inputs.keys() and "isArray" in inputs["applicationPackage"].keys() and inputs["applicationPackage"]["isArray"]=="true":
             for i in range(int(inputs["applicationPackage"]["length"])):
                 lInputs = {"applicationPackage": {"value": inputs["applicationPackage"]["value"][i]}}
