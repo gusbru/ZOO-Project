@@ -6,308 +6,256 @@ metadata:
 data:
   DeploymentProcess.py: |+
     #
-    import sys
+    from dataclasses import dataclass, field
+    import logging
     import json
+    from typing import Optional
+    from uuid import uuid4
+
+    from kubernetes import client, config, watch
     import yaml
-    # import re
-    # from cwl_utils.parser import load_document as load_cwl
-    # from cwl_utils.parser import *
 
-    class Process:
-        def __init__(
-            self,
-            identifier,
-            version,
-            title=None,
-            description=None,
-            store_supported=True,
-            status_supported=True,
-            service_type=None,
-            service_provider=None,
-        ):
-            self.identifier = identifier
-            self.version = version
-            self.title = title or identifier
-            if self.title:
-                self.title = str(self.title)
-            self.description = description or title
-            if self.description:
-                self.description = str(self.description)
-            self.store_supported = store_supported
-            self.status_supported = status_supported
-            self.service_type = service_type
-            self.service_provider = service_provider
-            self.version = version
-            self.inputs = []
-            self.outputs = []
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
-        def write_zcfg(self, stream):
-            """
-            Writes the configuration file for the Zoo process (.zfcg) to a stream.
-            """
-            print("Writes the configuration file for the Zoo process (.zfcg) to a stream", file=sys.stderr)
 
-            print("[{0}]".format(self.identifier), file=stream)
-            if self.title:
-                print("  Title = {0}".format(self.title), file=stream)
-            if self.description:
-                print("  Abstract = {0}".format(self.description), file=stream)
-            if self.service_provider:
-                print("  serviceType = {0}".format(self.service_type), file=stream)
-                print("  serviceProvider = {0}".format(self.service_provider), file=stream)
-            if self.version:
-                print("  processVersion = {0}".format(self.version), file=stream)
-            print(
-                "  storeSupported = {0}".format(
-                    "true" if self.store_supported else "false"
-                ),
-                file=stream,
+    @dataclass
+    class StorageCredentials:
+        access_key: str
+        secret_key: str
+
+
+    @dataclass
+    class WorkflowConfig:
+        namespace: str
+        workflow_name: Optional[str] = field(default=None)
+        workflow_parameters: list[dict] = field(default_factory=list)
+        storage_credentials: Optional[StorageCredentials] = field(default=None)
+
+
+    class ArgoWorkflow:
+        def __init__(self, workflow_config: WorkflowConfig):
+            self.workflow_config = workflow_config
+            self.job_namespace: Optional[str] = None
+            self.workflow_manifest = None
+
+            # Load the kube config from the default location
+            logger.info("Loading kube config")
+            config.load_kube_config()
+
+            # Create a new client
+            logger.info("Creating a new K8s client")
+            self.v1 = client.CoreV1Api()
+            self.rbac_v1 = client.RbacAuthorizationV1Api()
+            self.custom_api = client.CustomObjectsApi()
+
+        def _create_job_namespace(self):
+            # Create the namespace
+            if self.workflow_config.workflow_name is None:
+                raise ValueError("workflow_name is required")
+
+            self.job_namespace = f"{self.workflow_config.namespace}-{self.workflow_config.workflow_name}-{uuid4().hex[:6]}"
+            logger.info(f"Creating namespace: {self.job_namespace}")
+            namespace_body = client.V1Namespace(
+                metadata=client.V1ObjectMeta(name=self.job_namespace)
             )
-            print(
-                "  statusSupported = {0}".format(
-                    "true" if self.status_supported else "false"
-                ),
-                file=stream,
+            self.v1.create_namespace(body=namespace_body)
+
+        # Create storage secret on K8s
+        def _create_job_secret(self):
+            logger.info(f"Creating storage secrets for namespace: {self.job_namespace}")
+            secret_body = client.V1Secret(
+                metadata=client.V1ObjectMeta(
+                    name="storage-credentials"
+                ),  # this name needs to match the configuration for the workflow-controller (workflow-controller-configmap)
+                string_data={
+                    "access-key": self.workflow_config.storage_credentials.access_key,
+                    "secret-key": self.workflow_config.storage_credentials.secret_key,
+                },
             )
+            self.v1.create_namespaced_secret(namespace=self.job_namespace, body=secret_body)
 
-            print("  <DataInputs>", file=stream)
-            for input in self.inputs:
-                print("    [{0}]".format(input.identifier), file=stream)
-                print("      Title = {0}".format(input.title), file=stream)
-                print("      Abstract = {0}".format(input.description), file=stream)
-                print("      minOccurs = {0}".format(input.min_occurs), file=stream)
-                print(
-                    "      maxOccurs = {0}".format(
-                        999 if input.max_occurs == 0 else input.max_occurs
-                    ),
-                    file=stream,
-                )
-                if input.is_complex:
-                    pass
-                else:
-                    print("      <LiteralData>", file=stream)
-                    print("        dataType = {0}".format(input.type), file=stream)
-                    if input.possible_values:
-                        print(
-                            "        AllowedValues = {0}".format(
-                                ",".join(input.possible_values)
-                            ),
-                            file=stream,
-                        )
-                    if input.default_value:
-                        print("        <Default>", file=stream)
-                        print(
-                            "          value = {0}".format(input.default_value), file=stream
-                        )
-                        print("        </Default>", file=stream)
-                    else:
-                        print("        <Default/>", file=stream)
-                    print("      </LiteralData>", file=stream)
-            print("  </DataInputs>", file=stream)
-
-            print("  <DataOutputs>", file=stream)
-            for output in self.outputs:
-                print("    [{0}]".format(output.identifier), file=stream)
-                print("      Title = {0}".format(output.title), file=stream)
-                print("      Abstract = {0}".format(output.description), file=stream)
-                if output.is_complex:
-                    print("      <ComplexData>", file=stream)
-                    print("        <Default>", file=stream)
-                    print(
-                        "          mimeType = {0}".format(
-                            output.file_content_type
-                            if output.file_content_type
-                            else "text/plain"
-                        ),
-                        file=stream,
+        # Create the Role
+        def _create_job_role(self):
+            logger.info(f"Creating role for namespace: {self.job_namespace}")
+            role_body = client.V1Role(
+                metadata=client.V1ObjectMeta(name="pod-patcher"),
+                rules=[
+                    client.V1PolicyRule(
+                        api_groups=[""],
+                        resources=["pods"],
+                        verbs=[
+                            "get",
+                            "list",
+                            "watch",
+                            "create",
+                            "update",
+                            "patch",
+                            "delete",
+                        ],
                     )
-                    print("        </Default>", file=stream)
-                    print("      </ComplexData>", file=stream)
-                else:
-                    print("      <LiteralData>", file=stream)
-                    print("        dataType = {0}".format(input.type), file=stream)
-                    print("        <Default/>", file=stream)
-                    print("      </LiteralData>", file=stream)
-            print("  </DataOutputs>", file=stream)
+                ],
+            )
+            self.rbac_v1.create_namespaced_role(
+                namespace=self.job_namespace, body=role_body
+            )
 
-        def run_sql(self, conf):
-            """
-            Store the metadata informations in the ZOO-Project database
-            """
-            print("Store the metadata informations in the ZOO-Project database", file=sys.stderr)
-            import psycopg2
-            import psycopg2.extensions
-            psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
-            if "auth_env" in conf:
-                self.user=conf["auth_env"]["user"]
-            else:
-                self.user="anonymous"
-            conn = psycopg2.connect("host=%s port=%s dbname=%s user=%s password=%s" % (conf["metadb"]["host"], conf["metadb"]["port"], conf["metadb"]["dbname"], conf["metadb"]["user"], conf["metadb"]["password"]))
-            cur = conn.cursor()
-            if "orequest_method" in conf["lenv"]:
-                cur.execute("DELETE FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)" % (self.identifier,self.user))
-            conn.commit()
-            cur.execute("SELECT id FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)" % (self.identifier,self.user))
-            vals = cur.fetchone()
-            if vals is not None:
-                conn.close()
-                return False
-            conn.commit()
-            cur.execute(("INSERT INTO CollectionDB.zoo_DeploymentMetadata"+
-                    "(executable_name,service_type_id)"+
-                    " VALUES "+
-                    " ($q${0}$q$,"+
-                    "(SELECT id from CollectionDB.zoo_ServiceTypes WHERE service_type=$q${1}$q$));")
-                    .format(self.service_provider,self.service_type))
-            cur.execute("INSERT INTO CollectionDB.zoo_PrivateMetadata(id) VALUES (default);")
-            cur.execute("INSERT INTO CollectionDB.PrivateMetadataDeploymentMetadataAssignment(private_metadata_id,deployment_metadata_id) VALUES"+
-                    "((SELECT last_value FROM CollectionDB.zoo_PrivateMetadata_id_seq),"+
-                    "(SELECT last_value FROM CollectionDB.zoo_DeploymentMetadata_id_seq));")
+        # Create the RoleBinding
+        def _create_job_role_binding(self):
+            logger.info(f"Creating role binding for namespace: {self.job_namespace}")
+            role_binding_body = client.V1RoleBinding(
+                metadata=client.V1ObjectMeta(name="pod-patcher-binding"),
+                subjects=[
+                    {
+                        "kind": "ServiceAccount",
+                        "name": "default",
+                        "namespace": self.job_namespace,
+                    }
+                ],
+                role_ref=client.V1RoleRef(
+                    api_group="rbac.authorization.k8s.io", kind="Role", name="pod-patcher"
+                ),
+            )
+            self.rbac_v1.create_namespaced_role_binding(
+                namespace=self.job_namespace, body=role_binding_body
+            )
+
+        def _save_template_job_namespace(self):
+            template_manifest = self.workflow_manifest
+            template_manifest["metadata"]["namespace"] = self.job_namespace
+            template_manifest["metadata"]["resourceVersion"] = None
+            self.save_workflow_template(
+                template_manifest=template_manifest, namespace=self.job_namespace
+            )
+
+        def load_workflow_template(self):
             try:
-                cur.execute("SELECT id from public.users WHERE name = $q${0}$q$".format(self.user))
-                if cur.fetchone() is None:
-                    cur.execute("INSERT INTO public.users (name) VALUES ($q${0}$q$)".format(self.user))
+                if self.workflow_config.workflow_name is None:
+                    raise ValueError("workflow_name is required")
+
+                # Get the template
+                self.workflow_manifest = self.custom_api.get_namespaced_custom_object(
+                    group="argoproj.io",
+                    version="v1alpha1",
+                    namespace=self.workflow_config.namespace,
+                    plural="workflowtemplates",
+                    name=self.workflow_config.workflow_name,
+                )
+
             except Exception as e:
-                print(e,file=sys.stderr)
-                cur.commit()
-            cur.execute(("INSERT INTO CollectionDB.ows_Process"+
-                    "(identifier,title,abstract,version,user_id,private_metadata_id,mutable,availability)"+
-                    "VALUES"+
-                    "($q${0}$q$,"+
-                    "$q${1}$q$,"+
-                    "$q${2}$q$,"+
-                    "$q${3}$q$,"+
-                    "(select id from public.users where name=$q${4}$q$),"+
-                    "(SELECT last_value FROM CollectionDB.PrivateMetadataDeploymentMetadataAssignment_id_seq),"+
-                    "true,true);").format(self.identifier,self.title,self.description,self.version,self.user))
-            cur.execute("CREATE TEMPORARY TABLE pid AS (select last_value as id from CollectionDB.Descriptions_id_seq);")
-            # Inputs treatment
-            for input in self.inputs:
-                if input.is_complex:
-                    pass
-                else:
-                    cur.execute("INSERT INTO CollectionDB.LiteralDataDomain (def,data_type_id) VALUES "+
-                            "(true,(SELECT id from CollectionDB.PrimitiveDatatypes where name = $q${0}$q$));".format(input.type))
-                    if input.possible_values:
-                        for i in range(len(input.possible_values)):
-                            cur.execute("INSERT INTO CollectionDB.AllowedValues (allowed_value) VALUES ($q${0}$q$);".format(input.possible_values[i]))
-                            cur.execute("INSERT INTO CollectionDB.AllowedValuesAssignment (literal_data_domain_id,allowed_value_id) VALUES ("+
-                                            "(select last_value as id from CollectionDB.LiteralDataDomain_id_seq)"+
-                                            "(select last_value as id from CollectionDB.AllowedValues_id_seq)"
-                                            ");")
-                    if input.default_value:
-                        cur.execute("UPDATE CollectionDB.LiteralDataDomain"+
-                                        " set default_value = $q${0}$q$ ".format(input.default_value)+
-                                        " WHERE id = "+
-                                        "  ((SELECT last_value FROM CollectionDB.ows_DataDescription_id_seq));")
+                logger.error(f"Error loading template: {e}")
+                raise e
 
-                cur.execute(("INSERT INTO CollectionDB.ows_Input (identifier,title,abstract,min_occurs,max_occurs) VALUES "+
-                        "($q${0}$q$,"+
-                        "$q${1}$q$,"+
-                        "$q${2}$q$,"+
-                        "{3},"+
-                        "{4});").format(input.identifier,
-                                            input.title,
-                                            input.description,
-                                            input.min_occurs,
-                                            999 if input.max_occurs == 0 else input.max_occurs))
-                cur.execute("INSERT INTO CollectionDB.InputDataDescriptionAssignment (input_id,data_description_id) VALUES ((select last_value as id from CollectionDB.Descriptions_id_seq),(select last_value from CollectionDB.ows_DataDescription_id_seq));");
-                cur.execute("INSERT INTO CollectionDB.ProcessInputAssignment(process_id,input_id) VALUES((select id from pid),(select last_value as id from CollectionDB.Descriptions_id_seq));")
-            # Output treatment
-            for output in self.outputs:
-                if output.is_complex:
-                    cur.execute("INSERT INTO CollectionDB.ows_Format (def,primitive_format_id) VALUES "+
-                            "(true,(SELECT id from CollectionDB.PrimitiveFormats WHERE mime_type='{0}' LIMIT 1));".format(
-                                output.file_content_type
-                                if output.file_content_type
-                                else "text/plain"
-                                ))
-                else:
-                    pass
-                cur.execute("INSERT INTO CollectionDB.ows_DataDescription (format_id) VALUES ((SELECT last_value FROM CollectionDB.ows_Format_id_seq));")
-                cur.execute("INSERT INTO CollectionDB.ows_Output"+
-                        "(identifier,title,abstract)"+
-                        " VALUES "+
-                        "($q${0}$q$,$q${1}$q$,$q${2}$q$);".format(output.identifier,output.title,output.description))
-                cur.execute("INSERT INTO CollectionDB.OutputDataDescriptionAssignment (output_id,data_description_id) VALUES ((select last_value as id from CollectionDB.Descriptions_id_seq),(select last_value from CollectionDB.ows_DataDescription_id_seq));")
-                cur.execute("INSERT INTO CollectionDB.ProcessOutputAssignment(process_id,output_id) VALUES((select id from pid),(select last_value as id from CollectionDB.Descriptions_id_seq));")
-            cur.execute("DROP TABLE pid;")
-            conn.commit()
-            conn.close()
-            return True
+        def save_workflow_template(
+            self, template_manifest: dict = None, namespace: Optional[str] = None
+        ):
+            try:
+                # Create the template
+                namespace = namespace or self.workflow_config.namespace
+                workflow_name = template_manifest["metadata"]["name"]
+                logger.info(
+                    f"Creating workflow template {workflow_name} on namespace {namespace}"
+                )
 
-        def write_ogc_api_json(self, stream):
-            print("Writes the OGC API JSON to a stream", file=sys.stderr)
-            ogc = self.get_ogc_api_json()
-            print(json.dumps(ogc, indent=2), file=stream)
+                self.custom_api.create_namespaced_custom_object(
+                    group="argoproj.io",
+                    version="v1alpha1",
+                    namespace=namespace,
+                    plural="workflowtemplates",
+                    body=template_manifest,
+                )
+                logger.info(f"Workflow template {workflow_name} created successfully")
+            except Exception as e:
+                logger.error(f"Error saving template: {e}")
+                raise e
 
-        def write_ogc_api_yaml(self, stream):
-            print("Writes the OGC API YAML to a stream", file=sys.stderr)
-            ogc = self.get_ogc_api_json()
-            print(yaml.dump(ogc), file=stream)
+        # Submit the workflow
+        def _submit_workflow(self):
+            if self.workflow_config.workflow_name is None:
+                raise ValueError("workflow_name is required")
 
-        def get_ogc_api_json(self):
-            print("Gets the OGC API JSON", file=sys.stderr)
-            ogc = {
-                "id": self.identifier,
-                "version": self.version,
-                "title": self.title,
-                "description": self.description,
-                "jobControlOptions": [],
-                "outputTransmission": [],
-                "links": [],
-                "inputs": {},
-                "outputs": {},
+            workflow_manifest = {
+                "apiVersion": "argoproj.io/v1alpha1",
+                "kind": "Workflow",
+                "metadata": {"generateName": f"{self.workflow_config.workflow_name}-"},
+                "spec": {
+                    "workflowTemplateRef": {
+                        "name": self.workflow_manifest["metadata"]["name"],
+                        "namespace": self.workflow_manifest["metadata"]["namespace"],
+                    },
+                    "arguments": {
+                        "parameters": self.workflow_config.workflow_parameters  # Add parameters if provided
+                    },
+                },
             }
 
-            for input in self.inputs:
-                ogc_input_schema = {"type": input.type}
-                if input.min_occurs == 0:
-                    ogc_input_schema["nullable"] = True
-                elif input.max_occurs != 1:
-                    ogc_input_schema["minItems"] = input.min_occurs
-                if input.max_occurs != 1:
-                    ogc_input_schema["type"] = "array"
-                    ogc_input_schema["maxItems"] = (
-                        input.max_occurs if input.max_occurs > 1 else 100
+            workflow = self.custom_api.create_namespaced_custom_object(
+                group="argoproj.io",
+                version="v1alpha1",
+                namespace=self.job_namespace,
+                plural="workflows",
+                body=workflow_manifest,
+            )
+
+            return workflow
+
+        # Monitor the workflow execution
+        def monitor_workflow(self, workflow: dict):
+            logger.info(f"Monitoring workflow {workflow['metadata']['name']}")
+
+            if self.job_namespace is None:
+                raise ValueError("job_namespace is required")
+
+            w = watch.Watch()
+            workflow_stream = w.stream(
+                self.custom_api.list_namespaced_custom_object,
+                group="argoproj.io",
+                version="v1alpha1",
+                namespace=self.job_namespace,
+                plural="workflows",
+                field_selector=f"metadata.name={workflow['metadata']['name']}",
+            )
+
+            for data in workflow_stream:
+                event_data = data["type"]
+                workflow_data = data["object"]["metadata"]["name"]
+                phase_data = data["object"].get("status", {}).get("phase")
+                progress_data = data["object"].get("status", {}).get("progress")
+
+                # Stop watching if the workflow has reached a terminal state
+                if phase_data in ["Succeeded", "Failed", "Error"]:
+                    logger.info(
+                        f"Workflow {workflow_data} has reached a terminal state: {phase_data}"
                     )
-                    ogc_input_schema["items"] = {"type": input.type}
-                if input.possible_values:
-                    ogc_input_schema["enum"] = input.possible_values.copy()
-                if input.default_value:
-                    ogc_input_schema["default"] = input.default_value
-                if input.is_file:
-                    ogc_input_schema["contentMediaType"] = input.file_content_type()
-                elif input.is_directory:
-                    ogc_input_schema["contentMediaType"] = input.file_content_type()
+                    # need to save this on the logs
+                    logger.info(json.dumps(data, indent=2))
+                    w.stop()
 
-                ogc_input = {
-                    "title": input.title,
-                    "description": input.description,
-                    "schema": ogc_input_schema,
-                }
+                # print(data)
+                logger.info(
+                    f"Event: {event_data}, Workflow: {workflow_data}, Phase: {phase_data}, Progress: {progress_data}"
+                )
 
-                if input.is_complex:
-                    pass  # TODO
-                else:
-                    ogc["inputs"][input.identifier] = ogc_input
+            logger.info("Workflow monitoring complete")
 
-            for output in self.outputs:
-                ogc_output_schema = {"type": output.type}
+        def run(self):
+            # Load the workflow template
+            logger.info(f"Loading workflow template: {self.workflow_config.workflow_name}")
+            self.load_workflow_template()
 
-                ogc_output = {
-                    "title": output.title,
-                    "description": output.description,
-                    "schema": ogc_output_schema,
-                }
+            # Create the namespace, access key, and secret key
+            logger.info("Creating namespace, roles, and storage secrets")
+            self._create_job_namespace()
+            self._create_job_secret()
+            self._create_job_role()
+            self._create_job_role_binding()
 
-                if output.is_complex:
-                    pass  # TODO
-                else:
-                    ogc["outputs"][output.identifier] = ogc_output
-            return ogc
+            # Template workflow needs to be on the same namespace as the job
+            self._save_template_job_namespace()
 
-
+            workflow = self._submit_workflow()
+            self.monitor_workflow(workflow)
     #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
@@ -362,29 +310,8 @@ data:
     import shutil
     import json
     from pathlib import Path
-    import sys
-    # from deploy_util import Process
+    from deploy_util import Process # TODO: use deploy_utils_v2
     import yaml
-    import requests
-    import botocore
-    from urllib.parse import urlparse
-    from collections import namedtuple
-    import os
-
-
-    def get_s3_settings():
-        # you can extend this method to get the S3 credentials 
-        return namedtuple(
-            "S3Settings",
-            ["region_name", "endpoint_url", "aws_access_key_id", "aws_secret_access_key"],
-            defaults=[
-                os.getenv("S3_REGION"),
-                os.getenv("SERVICE_URL"),
-                os.getenv("S3_ACCESS_KEY"),
-                os.getenv("S3_SECRET_KEY"),
-            ],
-        )
-
 
     class DeployService(object):
         def __init__(self, conf, inputs, outputs):
