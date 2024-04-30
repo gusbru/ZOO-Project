@@ -6,6 +6,7 @@ metadata:
 data:
   DeploymentProcess.py: |+
     #
+    import sys
     from dataclasses import dataclass, field
     import logging
     import json
@@ -16,7 +17,7 @@ data:
     import yaml
 
     # Configure logging
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     logger = logging.getLogger(__name__)
 
 
@@ -148,7 +149,7 @@ data:
                 raise e
 
         def save_workflow_template(
-            self, template_manifest: dict = None, namespace: Optional[str] = None
+            self, template_manifest: Optional[dict] = None, namespace: Optional[str] = None
         ):
             try:
                 # Create the template
@@ -347,11 +348,11 @@ data:
             self.service_tmp_folder = self.create_service_tmp_folder()
             print(f"service_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
 
-            self.cwl_content = self.get_application_package()
+            self.application_package = self.get_application_package()
 
             if "workflow_id" in self.conf["lenv"]:
                 print(f"workflow_id from conf.lenv = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
-                # self.service_configuration = Process.create_from_cwl(self.cwl_content,self.conf["lenv"]["workflow_id"])
+                # self.service_configuration = Process.create_from_cwl(self.application_package,self.conf["lenv"]["workflow_id"])
                 self.service_configuration = Process(
                     identifier=self.conf['lenv']['workflow_id'],
                     version="1.2.3",
@@ -360,7 +361,7 @@ data:
                 )
             else:
                 print("No workflow_id in conf.lenv", file=sys.stderr)
-                # self.service_configuration = Process.create_from_cwl(self.cwl_content)
+                # self.service_configuration = Process.create_from_cwl(self.application_package)
                 self.service_configuration = Process(
                     identifier="custom5",
                     version="1.2.3",
@@ -423,6 +424,16 @@ data:
                 errorMsg = f"Cannot write to {folder}. Please check folder"
                 print(errorMsg, file=sys.stderr)
                 raise Exception(errorMsg)
+            
+        def deploy_argo_workflow_template(self):
+            GLOBAL_WORKSPACE = "argo"
+            workspace = self.conf.get("zooServicesNamespace", {}).get("namespace", GLOBAL_WORKSPACE)
+            
+            workflow_config = WorkflowConfig(namespace=workspace)
+
+            argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
+
+            argo_workflow.save_workflow_template(template_manifest=self.application_package)
 
         def create_service_tmp_folder(self):
             # creating the folder where we will download the applicationPackage
@@ -549,13 +560,18 @@ data:
 
                 print(f"open app_package_file = {app_package_file}",file=sys.stderr)
                 with open(app_package_file, "w") as file:
-                    yaml.dump(self.cwl_content, file)
+                    yaml.dump(self.application_package, file)
 
                 print(f"move {path} to {self.zooservices_folder}",file=sys.stderr)
                 shutil.move(path, self.zooservices_folder)
 
                 print(f"cleanup tmp folder {self.service_tmp_folder}",file=sys.stderr)
                 shutil.rmtree(self.service_tmp_folder)
+
+            print("deploy argo template", file=sys.stderr)
+            self.deploy_argo_workflow_template()
+            print("argo template deployed", file=sys.stderr)
+
 
             print("service generated",file=sys.stderr)
             self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
