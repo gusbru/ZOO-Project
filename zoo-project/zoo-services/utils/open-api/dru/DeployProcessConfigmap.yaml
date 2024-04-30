@@ -42,11 +42,11 @@ data:
             self.workflow_manifest = None
 
             # Load the kube config from the default location
-            logger.info("Loading kube config")
+            # logger.info("Loading kube config")
             config.load_kube_config()
 
             # Create a new client
-            logger.info("Creating a new K8s client")
+            # logger.info("Creating a new K8s client")
             self.v1 = client.CoreV1Api()
             self.rbac_v1 = client.RbacAuthorizationV1Api()
             self.custom_api = client.CustomObjectsApi()
