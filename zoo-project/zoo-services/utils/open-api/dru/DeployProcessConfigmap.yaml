@@ -5,6 +5,8 @@ metadata:
   name: deployment-configmap
 data:
   DeploymentProcess.py: |+
+    #
+
     import os
 
     try:
@@ -173,51 +175,57 @@ data:
 
         def generate_service(self):
 
+            print("start generating service",file=sys.stderr)
             path=None
-            print(self.conf["lenv"],file=sys.stderr)
+            print(f"self.conf.lenv = {self.conf['lenv']}",file=sys.stderr)
+            
             if "noRunSql" in self.conf["lenv"]:
-                # checking if the template location is remote or local
-                if self.cookiecutter_template_url.endswith(".git"):
+                print(f"noRunSql = {self.conf['lenv']['noRunSql']}",file=sys.stderr)
+                
+                print("skipping cwl generation",file=sys.stderr)
+                if False:
+                    # checking if the template location is remote or local
+                    if self.cookiecutter_template_url.endswith(".git"):
 
-                    template_folder = os.path.join(
-                        self.cookiecutter_templates_folder,
-                        Path(self.cookiecutter_template_url).stem,
-                    )
-
-                    # checking if template had already been cloned
-                    if os.path.isdir(template_folder):
-                        shutil.rmtree(template_folder)
-
-                    # retrieving the branch to clone
-                    # if no branch is specified, we will clone the master branch
-                    cookiecutter_template_branch = self.cookiecutter_template_branch
-
-                    # cloning the template
-                    if cookiecutter_template_branch is not None:
-                        os.system(
-                            f"git clone -b {cookiecutter_template_branch} {self.cookiecutter_template_url} {template_folder}"
+                        template_folder = os.path.join(
+                            self.cookiecutter_templates_folder,
+                            Path(self.cookiecutter_template_url).stem,
                         )
+
+                        # checking if template had already been cloned
+                        if os.path.isdir(template_folder):
+                            shutil.rmtree(template_folder)
+
+                        # retrieving the branch to clone
+                        # if no branch is specified, we will clone the master branch
+                        cookiecutter_template_branch = self.cookiecutter_template_branch
+
+                        # cloning the template
+                        if cookiecutter_template_branch is not None:
+                            os.system(
+                                f"git clone -b {cookiecutter_template_branch} {self.cookiecutter_template_url} {template_folder}"
+                            )
+                        else:
+                            os.system(f"git clone {self.cookiecutter_template_url} {template_folder}")
+
                     else:
-                        os.system(f"git clone {self.cookiecutter_template_url} {template_folder}")
+                        raise ValueError(
+                            f"{self.cookiecutter_template_url} is not a valid git repo"
+                        )
 
-                else:
-                    raise ValueError(
-                        f"{self.cookiecutter_template_url} is not a valid git repo"
+                    cookiecutter_values = {"service_name": self.service_configuration.identifier,
+                                        "workflow_id": self.service_configuration.identifier,
+                                        "conf": self.conf["cookiecutter"]}
+
+                    # Create project from template
+                    path = cookiecutter(
+                        template_folder,
+                        extra_context=cookiecutter_values,
+                        output_dir=self.service_tmp_folder,
+                        no_input=True,
+                        overwrite_if_exists=True,
+                        config_file=self.cookiecutter_configuration_file
                     )
-
-                cookiecutter_values = {"service_name": self.service_configuration.identifier,
-                                    "workflow_id": self.service_configuration.identifier,
-                                    "conf": self.conf["cookiecutter"]}
-
-                # Create project from template
-                path = cookiecutter(
-                    template_folder,
-                    extra_context=cookiecutter_values,
-                    output_dir=self.service_tmp_folder,
-                    no_input=True,
-                    overwrite_if_exists=True,
-                    config_file=self.cookiecutter_configuration_file
-                )
 
             if "metadb" not in self.conf:
                 zcfg_file = os.path.join(
@@ -228,13 +236,16 @@ data:
 
             # checking if service had already been deployed previously
             # if yes, delete it before redeploy the new one
+            print("checking if service had already been deployed previously",file=sys.stderr)
             old_service = os.path.join(self.zooservices_folder,self.service_configuration.identifier)
             if os.path.isdir(old_service):
+                print("service had already been deployed previously",file=sys.stderr)
                 shutil.rmtree(old_service)
                 if "metadb" not in self.conf:
                     os.remove(zcfg_file)
 
             if "metadb" in self.conf and not("noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"):
+                print("running sql",file=sys.stderr)
                 rSql=self.service_configuration.run_sql(self.conf)
                 if not(rSql):
                     return False
@@ -252,6 +263,7 @@ data:
 
                 shutil.rmtree(self.service_tmp_folder)
 
+            print("service generated",file=sys.stderr)
             self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
 
             return True
@@ -277,14 +289,14 @@ data:
                     lInputs = {"applicationPackage": {"value": inputs["applicationPackage"]["value"][i]}}
                     lInputs["applicationPackage"]["mimeType"] = inputs["applicationPackage"]["mimeType"][i]
                     deploy_process = DeployService(conf, lInputs, outputs)
-                    # res=deploy_process.generate_service()
-                    # if not(res):
-                        # return duplicateMessage(conf,deploy_process)
+                    res=deploy_process.generate_service()
+                    if not(res):
+                        return duplicateMessage(conf,deploy_process)
             else:
                 deploy_process = DeployService(conf, inputs, outputs)
-                # res=deploy_process.generate_service()
-                # if not(res):
-                    # return duplicateMessage(conf,deploy_process)
+                res=deploy_process.generate_service()
+                if not(res):
+                    return duplicateMessage(conf,deploy_process)
             
             conf["lenv"]["deployedServiceId"] = deploy_process.service_configuration.identifier
             response_json = {
@@ -299,4 +311,3 @@ data:
             print(e,file=sys.stderr)
             conf["lenv"]["message"]=str(e)
             return zoo.SERVICE_FAILED
-
