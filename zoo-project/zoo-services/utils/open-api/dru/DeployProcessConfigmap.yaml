@@ -55,6 +55,7 @@ data:
         zoo = ZooStub()
         pass
 
+    from cookiecutter.main import cookiecutter
     import sys
     import shutil
     import json
@@ -93,6 +94,22 @@ data:
             self.zooservices_folder = self.get_zoo_services_folder()
             print(f"zooservices_folder = {self.zooservices_folder}", file=sys.stderr)
 
+            print("Skipping cookiecutter", file=sys.stderr)
+            if False:
+                self.cookiecutter_configuration_file = self._get_conf_value(
+                    key="configurationFile", section="cookiecutter"
+                )
+                self.cookiecutter_templates_folder = self._get_conf_value(
+                    key="templatesPath", section="cookiecutter"
+                )
+                self.cookiecutter_template_url = self._get_conf_value(
+                    key="templateUrl", section="cookiecutter"
+                )
+
+                self.cookiecutter_template_branch = self._get_conf_value_if_exists(
+                    key="templateBranch", section="cookiecutter"
+                )
+
             self.tmp_folder = self._get_conf_value("tmpPath")
             print(f"tmp_folder = {self.tmp_folder}", file=sys.stderr)
 
@@ -102,7 +119,7 @@ data:
             self.service_tmp_folder = self.create_service_tmp_folder()
             print(f"service_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
 
-            self.application_package = self.get_application_package()
+            self.cwl_content = self.get_application_package()
 
             if "workflow_id" in self.conf["lenv"]:
                 print(f"workflow_id from conf.lenv = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
@@ -218,7 +235,49 @@ data:
                 print(f"noRunSql = {self.conf['lenv']['noRunSql']}",file=sys.stderr)
                 
                 print("skipping cookiecutter generation",file=sys.stderr)
-                
+                if False:
+                    # checking if the template location is remote or local
+                    if self.cookiecutter_template_url.endswith(".git"):
+
+                        template_folder = os.path.join(
+                            self.cookiecutter_templates_folder,
+                            Path(self.cookiecutter_template_url).stem,
+                        )
+
+                        # checking if template had already been cloned
+                        if os.path.isdir(template_folder):
+                            shutil.rmtree(template_folder)
+
+                        # retrieving the branch to clone
+                        # if no branch is specified, we will clone the master branch
+                        cookiecutter_template_branch = self.cookiecutter_template_branch
+
+                        # cloning the template
+                        if cookiecutter_template_branch is not None:
+                            os.system(
+                                f"git clone -b {cookiecutter_template_branch} {self.cookiecutter_template_url} {template_folder}"
+                            )
+                        else:
+                            os.system(f"git clone {self.cookiecutter_template_url} {template_folder}")
+
+                    else:
+                        raise ValueError(
+                            f"{self.cookiecutter_template_url} is not a valid git repo"
+                        )
+
+                    cookiecutter_values = {"service_name": self.service_configuration.identifier,
+                                        "workflow_id": self.service_configuration.identifier,
+                                        "conf": self.conf["cookiecutter"]}
+
+                    # Create project from template
+                    path = cookiecutter(
+                        template_folder,
+                        extra_context=cookiecutter_values,
+                        output_dir=self.service_tmp_folder,
+                        no_input=True,
+                        overwrite_if_exists=True,
+                        config_file=self.cookiecutter_configuration_file
+                    )
 
             if "metadb" not in self.conf:
                 print("writing zcfg",file=sys.stderr)
@@ -273,8 +332,7 @@ data:
         else:
             conf["headers"]={"Location": sLocation }
         conf["lenv"]["code"]="DuplicatedProcess"
-        # conf["lenv"]["message"]=zoo._("A service with the same identifier is already deployed")
-        conf["lenv"]["message"] = "A service with the same identifier is already deployed"
+        conf["lenv"]["message"]=zoo._("A service with the same identifier is already deployed")
         return zoo.SERVICE_FAILED
 
     def DeployProcess(conf, inputs, outputs):
