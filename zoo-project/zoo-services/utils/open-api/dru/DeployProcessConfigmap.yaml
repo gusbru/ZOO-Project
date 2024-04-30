@@ -571,7 +571,7 @@ data:
                 shutil.rmtree(self.service_tmp_folder)
 
             print("deploy argo template", file=sys.stderr)
-            self.deploy_argo_workflow_template()
+            # self.deploy_argo_workflow_template()
             print("argo template deployed", file=sys.stderr)
 
 
