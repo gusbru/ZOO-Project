@@ -9,9 +9,9 @@ data:
     import sys
     import json
     import yaml
-    import re
-    from cwl_utils.parser import load_document as load_cwl
-    from cwl_utils.parser import *
+    # import re
+    # from cwl_utils.parser import load_document as load_cwl
+    # from cwl_utils.parser import *
 
     class Process:
         def __init__(
@@ -166,7 +166,7 @@ data:
             try:
                 cur.execute("SELECT id from public.users WHERE name = $q${0}$q$".format(self.user))
                 if cur.fetchone() is None:
-                    cur.execute("INSERT INTO public.users (name) VALUES ($q${0}$q$)".format(self.user));
+                    cur.execute("INSERT INTO public.users (name) VALUES ($q${0}$q$)".format(self.user))
             except Exception as e:
                 print(e,file=sys.stderr)
                 cur.commit()
