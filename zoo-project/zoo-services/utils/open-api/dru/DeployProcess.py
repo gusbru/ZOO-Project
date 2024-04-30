@@ -286,6 +286,9 @@ def duplicateMessage(conf,deploy_process):
 
 def DeployProcess(conf, inputs, outputs):
     try:
+        print(f"conf = {json.dumps(conf)}")
+        print(f"inputs = {json.dumps(inputs)}")
+        print(f"outputs = {json.dumps(outputs)}")
         if "applicationPackage" in inputs.keys() and "isArray" in inputs["applicationPackage"].keys() and inputs["applicationPackage"]["isArray"]=="true":
             for i in range(int(inputs["applicationPackage"]["length"])):
                 lInputs = {"applicationPackage": {"value": inputs["applicationPackage"]["value"][i]}}
