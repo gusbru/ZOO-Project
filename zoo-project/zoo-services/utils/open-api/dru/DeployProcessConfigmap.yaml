@@ -163,7 +163,7 @@ data:
                 print("No workflow_id in conf.lenv", file=sys.stderr)
                 # self.service_configuration = Process.create_from_cwl(self.cwl_content)
                 self.service_configuration = Process(
-                    identifier="workflow_id",
+                    identifier="custom5",
                     version="1.2.3",
                     title="This is an awesome workflow",
                     description="To use google it",
@@ -243,16 +243,16 @@ data:
                 raise ValueError("The inputs dot not include applicationPackage")
 
             # loading cwl in yaml object
-            print("loading input payload in yaml object (CWL)",file=sys.stderr)
-            if "cache_file" in self.inputs["applicationPackage"]:
-                cwl_content = yaml.safe_load(open(self.inputs["applicationPackage"]["cache_file"]).read())
-            else:
-                cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
-            # payload = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            print("loading input payload in yaml object",file=sys.stderr)
+            # if "cache_file" in self.inputs["applicationPackage"]:
+            #     cwl_content = yaml.safe_load(open(self.inputs["applicationPackage"]["cache_file"]).read())
+            # else:
+            #     cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            payload = yaml.safe_load(self.inputs["applicationPackage"]["value"])
 
             print("Done loading input payload in yaml object",file=sys.stderr)
 
-            return cwl_content
+            return payload
 
         def generate_service(self):
 
