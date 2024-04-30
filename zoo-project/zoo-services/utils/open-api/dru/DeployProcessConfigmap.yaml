@@ -271,6 +271,7 @@ data:
             print(f"conf = {json.dumps(conf, indent=4)}", file=sys.stderr)
             print(f"inputs = {json.dumps(inputs, indent=4)}", file=sys.stderr)
             print(f"outputs = {json.dumps(outputs, indent=4)}", file=sys.stderr)
+            print(f"zoo.__file__ = {zoo.__file__}, file=sys.stderr")
             
             if "applicationPackage" in inputs.keys() and "isArray" in inputs["applicationPackage"].keys() and inputs["applicationPackage"]["isArray"]=="true":
                 for i in range(int(inputs["applicationPackage"]["length"])):
