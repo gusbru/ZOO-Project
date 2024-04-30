@@ -49,7 +49,7 @@ data:
             config.load_incluster_config()
 
             # Create a new client
-            # logger.info("Creating a new K8s client")
+            logger.info("Creating a new K8s client")
             self.v1 = client.CoreV1Api()
             self.rbac_v1 = client.RbacAuthorizationV1Api()
             self.custom_api = client.CustomObjectsApi()
@@ -450,7 +450,7 @@ data:
             workflow_config = WorkflowConfig(namespace=workspace)
             print(f"workflow_config = {workflow_config.__dict__}", file=sys.stderr)
 
-            # argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
+            argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
 
             # argo_workflow.save_workflow_template(template_manifest=self.application_package)
 
