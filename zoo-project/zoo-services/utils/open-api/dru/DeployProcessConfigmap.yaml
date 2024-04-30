@@ -219,6 +219,8 @@ data:
 
         @staticmethod
         def check_write_permissions(folder):
+            # TODO: remove
+            return 
 
             if not os.access(folder, os.W_OK):
                 errorMsg = f"Cannot write to {folder}. Please check folder"
@@ -228,6 +230,10 @@ data:
         def create_service_tmp_folder(self):
             # creating the folder where we will download the applicationPackage
             tmp_path = os.path.join(self.tmp_folder, f"DeployProcess-{self.process_id}")
+
+            # TODO: remove
+            return tmp_path
+            
             try:
                 os.makedirs(tmp_path)
             except Exception as e:
@@ -317,13 +323,13 @@ data:
 
             # checking if service had already been deployed previously
             # if yes, delete it before redeploy the new one
-            print("checking if service had already been deployed previously",file=sys.stderr)
-            old_service = os.path.join(self.zooservices_folder,self.service_configuration.identifier)
-            if os.path.isdir(old_service):
-                print("service had already been deployed previously",file=sys.stderr)
-                shutil.rmtree(old_service)
-                if "metadb" not in self.conf:
-                    os.remove(zcfg_file)
+            print("checking if service had already been deployed previously (SKIPPED)",file=sys.stderr)
+            # old_service = os.path.join(self.zooservices_folder,self.service_configuration.identifier)
+            # if os.path.isdir(old_service):
+            #     print("service had already been deployed previously",file=sys.stderr)
+            #     shutil.rmtree(old_service)
+            #     if "metadb" not in self.conf:
+            #         os.remove(zcfg_file)
 
             if "metadb" in self.conf and not("noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"):
                 print("running sql",file=sys.stderr)
