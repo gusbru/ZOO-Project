@@ -428,12 +428,14 @@ data:
         def deploy_argo_workflow_template(self):
             GLOBAL_WORKSPACE = "argo"
             workspace = self.conf.get("zooServicesNamespace", {}).get("namespace", GLOBAL_WORKSPACE)
+
+            print(f"deploy_argo_workflow_template workspace = {workspace}", file=sys.stderr)
             
             workflow_config = WorkflowConfig(namespace=workspace)
 
-            argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
+            # argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
 
-            argo_workflow.save_workflow_template(template_manifest=self.application_package)
+            # argo_workflow.save_workflow_template(template_manifest=self.application_package)
 
         def create_service_tmp_folder(self):
             # creating the folder where we will download the applicationPackage
