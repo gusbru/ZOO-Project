@@ -277,16 +277,18 @@ data:
                     lInputs = {"applicationPackage": {"value": inputs["applicationPackage"]["value"][i]}}
                     lInputs["applicationPackage"]["mimeType"] = inputs["applicationPackage"]["mimeType"][i]
                     deploy_process = DeployService(conf, lInputs, outputs)
-                    res=deploy_process.generate_service()
-                    if not(res):
-                        return duplicateMessage(conf,deploy_process)
+                    # res=deploy_process.generate_service()
+                    # if not(res):
+                        # return duplicateMessage(conf,deploy_process)
             else:
                 deploy_process = DeployService(conf, inputs, outputs)
-                res=deploy_process.generate_service()
-                if not(res):
-                    return duplicateMessage(conf,deploy_process)
+                # res=deploy_process.generate_service()
+                # if not(res):
+                    # return duplicateMessage(conf,deploy_process)
+            
+            conf["lenv"]["deployedServiceId"] = deploy_process.service_configuration.identifier
             response_json = {
-                "message": f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.",
+                "message": "Service successfully deployed.",
                 "service": deploy_process.service_configuration.identifier,
                 "status": "success"
             }
