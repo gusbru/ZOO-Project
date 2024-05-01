@@ -203,10 +203,10 @@ data:
                 raise ValueError("The inputs dot not include applicationPackage")
 
             # loading cwl in yaml object
-            if "cache_file" in self.inputs["applicationPackage"]:
-                cwl_content = yaml.safe_load(open(self.inputs["applicationPackage"]["cache_file"]).read())
-            else:
-                cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            # if "cache_file" in self.inputs["applicationPackage"]:
+            #     cwl_content = yaml.safe_load(open(self.inputs["applicationPackage"]["cache_file"]).read())
+            # else:
+            cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
 
             return cwl_content
 
