@@ -15,6 +15,7 @@ data:
 
     from kubernetes import client, config, watch
     import yaml
+    from pycalrissian.context import CalrissianContext
 
     # Configure logging
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
@@ -47,13 +48,14 @@ data:
             # config.load_kube_config()
             # use this to run on the cluster
             # config.load_incluster_config()
-            config.load_config()
+            # config.load_config()
+            CalrissianContext(namespace="ws-bob", storage_class="standard", volume_size="10Mi")
 
             # Create a new client
             # logger.info("Creating a new K8s client")
-            self.v1 = client.CoreV1Api()
-            self.rbac_v1 = client.RbacAuthorizationV1Api()
-            self.custom_api = client.CustomObjectsApi()
+            # self.v1 = client.CoreV1Api()
+            # self.rbac_v1 = client.RbacAuthorizationV1Api()
+            # self.custom_api = client.CustomObjectsApi()
 
         def _create_job_namespace(self):
             # Create the namespace
