@@ -7,6 +7,7 @@ data:
   DeploymentProcess.py: |+
     #
     #
+    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -725,7 +726,7 @@ data:
                 print(f"workflow_id = {self.service_configuration.identifier}", file=sys.stderr)
 
             self.service_configuration.service_provider = (
-                f"/opt/zooservices_user/bob/{self.service_configuration.identifier}.service"
+                f"opt.zooservices_user.bob.{self.service_configuration.identifier}.service"
             )
             print(f"service_provider = {self.service_configuration.service_provider}", file=sys.stderr)
             self.service_configuration.service_type = "Python"
