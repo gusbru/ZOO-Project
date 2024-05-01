@@ -73,6 +73,17 @@ data:
             Creates a Process object from a dictionary representing the CWL YAML file.
             """
             print(f"cwl = {cwl}",file=sys.stderr)
+            if cwl.get("apiVersion") == "argoproj.io/v1alpha1":
+                print("Argo workflow detected",file=sys.stderr)
+                process = Process(
+                    identifier=cwl.get("metadata", {}).get("name", "unknown"),
+                    version=cwl.get("metadata", {}).get("version", "unknown"),
+                    title=cwl.get("metadata", {}).get("title", "unknown"),
+                    description=cwl.get("metadata", {}).get("description", "unknown")
+                )
+                return process
+
+
             cwl_obj = load_cwl(cwl)
 
             workflows = [
@@ -716,7 +727,9 @@ data:
             self.service_configuration.service_provider = (
                 f"{self.service_configuration.identifier}.service"
             )
+            print(f"service_provider = {self.service_configuration.service_provider}", file=sys.stderr)
             self.service_configuration.service_type = "Python"
+            print(f"service_type = {self.service_configuration.service_type}", file=sys.stderr)
 
             self.conf["lenv"]["workflow_id"] = self.service_configuration.identifier
             self.conf["lenv"]["service_name"] = self.service_configuration.identifier
