@@ -45,7 +45,7 @@ data:
             # logger.info("Loading kube config")
             # use this to test locally
             # config.load_kube_config()
-            # ust this to run on the cluster
+            # use this to run on the cluster
             config.load_incluster_config()
 
             # Create a new client
@@ -450,7 +450,11 @@ data:
             workflow_config = WorkflowConfig(namespace=workspace)
             print(f"workflow_config = {workflow_config.__dict__}", file=sys.stderr)
 
-            argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
+            try:
+                argo_workflow = ArgoWorkflow(workflow_config=workflow_config)
+            except Exception as e:
+                sys.stderr.write(e)
+                print(f"Error creating ArgoWorkflow: {e}", file=sys.stderr)
 
             # argo_workflow.save_workflow_template(template_manifest=self.application_package)
 
