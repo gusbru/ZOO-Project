@@ -46,13 +46,14 @@ data:
             # use this to test locally
             # config.load_kube_config()
             # use this to run on the cluster
-            config.load_incluster_config()
+            # config.load_incluster_config()
+            config.load_config()
 
             # Create a new client
             # logger.info("Creating a new K8s client")
             self.v1 = client.CoreV1Api()
-            # self.rbac_v1 = client.RbacAuthorizationV1Api()
-            # self.custom_api = client.CustomObjectsApi()
+            self.rbac_v1 = client.RbacAuthorizationV1Api()
+            self.custom_api = client.CustomObjectsApi()
 
         def _create_job_namespace(self):
             # Create the namespace
