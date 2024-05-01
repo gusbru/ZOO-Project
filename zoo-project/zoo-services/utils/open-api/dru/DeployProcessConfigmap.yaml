@@ -79,7 +79,7 @@ data:
                     identifier=cwl.get("metadata", {}).get("name", "unknown"),
                     version=cwl.get("metadata", {}).get("version", "unknown"),
                     title=cwl.get("metadata", {}).get("title", "unknown"),
-                    description=cwl.get("metadata", {}).get("description", "unknown")
+                    description=cwl.get("metadata", {}).get("description", "unknown"),
                 )
                 return process
 
@@ -725,7 +725,7 @@ data:
                 print(f"workflow_id = {self.service_configuration.identifier}", file=sys.stderr)
 
             self.service_configuration.service_provider = (
-                f"{self.service_configuration.identifier}.service"
+                f"/opt/zooservices_user/bob/{self.service_configuration.identifier}.service"
             )
             print(f"service_provider = {self.service_configuration.service_provider}", file=sys.stderr)
             self.service_configuration.service_type = "Python"
