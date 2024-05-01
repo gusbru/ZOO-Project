@@ -7,7 +7,6 @@ data:
   DeploymentProcess.py: |+
     #
     #
-    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -726,7 +725,7 @@ data:
                 print(f"workflow_id = {self.service_configuration.identifier}", file=sys.stderr)
 
             self.service_configuration.service_provider = (
-                f"opt.zooservices_user.bob.{self.service_configuration.identifier}.service"
+                f"{self.service_configuration.identifier}.service"
             )
             print(f"service_provider = {self.service_configuration.service_provider}", file=sys.stderr)
             self.service_configuration.service_type = "Python"
@@ -852,12 +851,13 @@ data:
                     config_file=self.cookiecutter_configuration_file
                 )
 
-            if "metadb" not in self.conf:
-                zcfg_file = os.path.join(
-                    self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
-                )
-                with open(zcfg_file, "w") as file:
-                    self.service_configuration.write_zcfg(file)
+            # if "metadb" not in self.conf:
+            zcfg_file = os.path.join(
+                self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
+            )
+            print(f"writting zcfg file: {zcfg_file}",file=sys.stderr)
+            with open(zcfg_file, "w") as file:
+                self.service_configuration.write_zcfg(file)
 
             # checking if service had already been deployed previously
             # if yes, delete it before redeploy the new one
@@ -886,6 +886,7 @@ data:
                 shutil.rmtree(self.service_tmp_folder)
 
             self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
+            print(f"deployedServiceId = {self.conf['lenv']['deployedServiceId']}", file=sys.stderr)
 
             return True
 
