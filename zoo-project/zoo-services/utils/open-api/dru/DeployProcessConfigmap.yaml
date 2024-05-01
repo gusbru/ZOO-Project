@@ -7,7 +7,6 @@ data:
   DeploymentProcess.py: |+
     #
     #
-    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -56,13 +55,16 @@ data:
         zoo = ZooStub()
         pass
 
-    from cookiecutter.main import cookiecutter
     import sys
     import shutil
     import json
     from pathlib import Path
-    from deploy_util import Process  # TODO: use deploy_utils_v2
     import yaml
+    from uuid import uuid4
+
+    from cookiecutter.main import cookiecutter
+
+    from deploy_util import Process  # TODO: use deploy_utils_v2
 
 
     class DeployService(object):
@@ -101,27 +103,22 @@ data:
 
             self.application_package = self.get_application_package()
 
-            if "workflow_id" in self.conf["lenv"]:
-                print(
-                    f"workflow_id from conf.lenv = {self.conf['lenv']['workflow_id']}",
-                    file=sys.stderr,
-                )
-                # self.service_configuration = Process.create_from_cwl(self.application_package,self.conf["lenv"]["workflow_id"])
-                self.service_configuration = Process(
-                    identifier=self.conf["lenv"]["workflow_id"],
-                    version="1.2.3",
-                    title="This is an awesome workflow",
-                    description="To use google it",
-                )
-            else:
-                print("No workflow_id in conf.lenv", file=sys.stderr)
-                # self.service_configuration = Process.create_from_cwl(self.application_package)
-                self.service_configuration = Process(
-                    identifier="custom5",
-                    version="1.2.3",
-                    title="This is an awesome workflow",
-                    description="To use google it",
-                )
+            self.service_configuration = Process(
+                identifier=self.conf["lenv"].get("workflow_id", str(uuid4())),
+                version=self.application_package.get("metadata", {}).get(
+                    "version", "unknown"
+                ),
+                title=self.application_package.get("metadata", {}).get(
+                    "title", "Untitled service"
+                ),
+                description=self.application_package.get("metadata", {}).get(
+                    "description", "-"
+                ),
+            )
+            print(
+                f"workflow_id = {self.service_configuration.identifier}",
+                file=sys.stderr,
+            )
 
             print("service_configuration created", file=sys.stderr)
 
