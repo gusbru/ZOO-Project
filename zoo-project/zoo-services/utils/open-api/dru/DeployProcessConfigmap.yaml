@@ -885,9 +885,10 @@ data:
                     "app-package.cwl",
                 )
 
-                
+                argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
                 with open(app_package_file, "w") as file:
-                    yaml.dump(self.cwl_content, file)
+                    # yaml.dump(self.cwl_content, file)
+                    yaml.dump(argo_workflow, file)
 
                 shutil.move(path, self.zooservices_folder)
 
