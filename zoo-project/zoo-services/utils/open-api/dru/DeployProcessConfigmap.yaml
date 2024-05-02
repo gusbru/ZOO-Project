@@ -7,7 +7,6 @@ data:
   DeploymentProcess.py: |+
     #
     #
-    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -149,7 +148,7 @@ data:
             """
             print(f"add_inputs_from_cwl. trim_len = {trim_len}",file=sys.stderr)
             for input in inputs:
-                print(f"input = {input}",file=sys.stderr)
+                print(f"input = {input.__dict__}",file=sys.stderr)
                 process_input = ProcessInput.create_from_cwl(input, trim_len)
                 self.inputs.append(process_input)
 
