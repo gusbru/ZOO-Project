@@ -73,16 +73,6 @@ data:
             Creates a Process object from a dictionary representing the CWL YAML file.
             """
             print(f"cwl = {cwl}",file=sys.stderr)
-            # if cwl.get("apiVersion") == "argoproj.io/v1alpha1":
-            #     print("Argo workflow detected",file=sys.stderr)
-            #     process = Process(
-            #         identifier=cwl.get("metadata", {}).get("name", "unknown"),
-            #         version=cwl.get("metadata", {}).get("version", "unknown"),
-            #         title=cwl.get("metadata", {}).get("title", "unknown"),
-            #         description=cwl.get("metadata", {}).get("description", "unknown"),
-            #     )
-            #     return process
-
 
             cwl_obj = load_cwl(cwl)
 
@@ -799,272 +789,6 @@ data:
             # if "cache_file" in self.inputs["applicationPackage"]:
             #     cwl_content = yaml.safe_load(open(self.inputs["applicationPackage"]["cache_file"]).read())
             # else:
-            # Get CWL from mock
-            cwl_dummy = """
-    cwlVersion: v1.0
-    $namespaces:
-    s: https://schema.org/
-    s:softwareVersion: $VERSION
-    schemas:
-    - http://schema.org/version/9.0/schemaorg-current-http.rdf
-    $graph:
-    - class: Workflow
-        id: $ID
-        label: $LABEL
-        doc: $DOC
-        requirements:
-        - class: ScatterFeatureRequirement
-        - class: SubworkflowFeatureRequirement
-        inputs:
-        aoi:
-            label: area of interest
-            doc: area of interest as a bounding box
-            type: string
-        epsg:
-            label: EPSG code
-            doc: EPSG code
-            type: string
-            default: EPSG:4326
-        stac_items:
-            label: Sentinel-2 STAC items
-            doc: list of Sentinel-2 COG STAC items
-            type: string[]
-        bands:
-            label: bands used for the NDWI
-            doc: bands used for the NDWI
-            type: string[]
-            default:
-            - green
-            - nir
-        outputs:
-        - id: stac
-            outputSource:
-            - node_stac/stac_catalog
-            type: Directory
-        steps:
-        node_water_bodies:
-            run: '#detect_water_body'
-            in:
-            item: stac_items
-            aoi: aoi
-            epsg: epsg
-            bands: bands
-            out:
-            - detected_water_body
-            scatter: item
-            scatterMethod: dotproduct
-        node_stac:
-            run: '#stac'
-            in:
-            item: stac_items
-            rasters:
-                source: node_water_bodies/detected_water_body
-            out:
-            - stac_catalog
-    - class: Workflow
-        id: detect_water_body
-        label: Water body detection based on NDWI and otsu threshold
-        doc: Water body detection based on NDWI and otsu threshold
-        requirements:
-        - class: ScatterFeatureRequirement
-        inputs:
-        aoi:
-            doc: area of interest as a bounding box
-            type: string
-        epsg:
-            doc: EPSG code
-            type: string
-            default: EPSG:4326
-        bands:
-            doc: bands used for the NDWI
-            type: string[]
-        item:
-            doc: STAC item
-            type: string
-        outputs:
-        - id: detected_water_body
-            outputSource:
-            - node_otsu/binary_mask_item
-            type: File
-        steps:
-        node_crop:
-            run: '#crop'
-            in:
-            item: item
-            aoi: aoi
-            epsg: epsg
-            band: bands
-            out:
-            - cropped
-            scatter: band
-            scatterMethod: dotproduct
-        node_normalized_difference:
-            run: '#norm_diff'
-            in:
-            rasters:
-                source: node_crop/cropped
-            out:
-            - ndwi
-        node_otsu:
-            run: '#otsu'
-            in:
-            raster:
-                source: node_normalized_difference/ndwi
-            out:
-            - binary_mask_item
-    - class: CommandLineTool
-        id: crop
-        requirements:
-        InlineJavascriptRequirement: {}
-        EnvVarRequirement:
-            envDef:
-            PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-            PYTHONPATH: /app
-        ResourceRequirement:
-            coresMax: 1
-            ramMax: 512
-        hints:
-        DockerRequirement:
-            dockerPull: ghcr.io/terradue/ogc-eo-application-package-hands-on/crop:1.5.0
-        baseCommand:
-        - python
-        - '-m'
-        - app
-        arguments: []
-        inputs:
-        item:
-            type: string
-            inputBinding:
-            prefix: '--input-item'
-        aoi:
-            type: string
-            inputBinding:
-            prefix: '--aoi'
-        epsg:
-            type: string
-            inputBinding:
-            prefix: '--epsg'
-        band:
-            type: string
-            inputBinding:
-            prefix: '--band'
-        outputs:
-        cropped:
-            outputBinding:
-            glob: '*.tif'
-            type: File
-    - class: CommandLineTool
-        id: norm_diff
-        requirements:
-        InlineJavascriptRequirement: {}
-        EnvVarRequirement:
-            envDef:
-            PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-            PYTHONPATH: /app
-        ResourceRequirement:
-            coresMax: 1
-            ramMax: 512
-        hints:
-        DockerRequirement:
-            dockerPull: ghcr.io/terradue/ogc-eo-application-package-hands-on/norm_diff:1.5.0
-        baseCommand:
-        - python
-        - '-m'
-        - app
-        arguments: []
-        inputs:
-        rasters:
-            type: File[]
-            inputBinding:
-            position: 1
-        outputs:
-        ndwi:
-            outputBinding:
-            glob: '*.tif'
-            type: File
-    - class: CommandLineTool
-        id: otsu
-        requirements:
-        InlineJavascriptRequirement: {}
-        EnvVarRequirement:
-            envDef:
-            PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-            PYTHONPATH: /app
-        ResourceRequirement:
-            coresMax: 1
-            ramMax: 512
-        hints:
-        DockerRequirement:
-            dockerPull: ghcr.io/terradue/ogc-eo-application-package-hands-on/otsu:1.5.0
-        baseCommand:
-        - python
-        - '-m'
-        - app
-        arguments: []
-        inputs:
-        raster:
-            type: File
-            inputBinding:
-            position: 1
-        outputs:
-        binary_mask_item:
-            outputBinding:
-            glob: '*.tif'
-            type: File
-    - class: CommandLineTool
-        id: stac
-        requirements:
-        InlineJavascriptRequirement: {}
-        EnvVarRequirement:
-            envDef:
-            PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-            PYTHONPATH: /app
-        ResourceRequirement:
-            coresMax: 1
-            ramMax: 512
-        hints:
-        DockerRequirement:
-            dockerPull: ghcr.io/terradue/ogc-eo-application-package-hands-on/stac:1.5.0
-        baseCommand:
-        - python
-        - '-m'
-        - app
-        arguments: []
-        inputs:
-        item:
-            type:
-            type: array
-            items: string
-            inputBinding:
-                prefix: '--input-item'
-        rasters:
-            type:
-            type: array
-            items: File
-            inputBinding:
-                prefix: '--water-body'
-        outputs:
-        stac_catalog:
-            outputBinding:
-            glob: .
-            type: Directory"""
-
-            # this comes from user input
-            # argo_workflow_template = yaml.safe_load(self.inputs["applicationPackage"]["value"])
-            
-            # version = argo_workflow_template.get("metadata", {}).get("version", "unknown")
-            # workflow_id = argo_workflow_template.get("metadata", {}).get("name", "unknown") # TODO: needs to match conf[...]
-            # title = argo_workflow_template.get("metadata", {}).get("title", "")
-            # description = argo_workflow_template.get("metadata", {}).get("description", "")
-            
-            # # UPDATE CWL
-            # cwl_dummy = re.sub(r"\$VERSION", version, cwl_dummy)
-            # cwl_dummy = re.sub(r"\$ID", workflow_id, cwl_dummy)
-            # cwl_dummy = re.sub(r"\$LABEL", title, cwl_dummy)
-            # cwl_dummy = re.sub(r"\$DOC", description, cwl_dummy)
-
-            # cwl_content = yaml.safe_load(cwl_dummy)
-            
             cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
 
             return cwl_content
@@ -1108,7 +832,6 @@ data:
                                     "conf": self.conf["cookiecutter"]}
 
                 # Create project from template
-                print("Creating project from template",file=sys.stderr)
                 path = cookiecutter(
                     template_folder,
                     extra_context=cookiecutter_values,
@@ -1118,13 +841,13 @@ data:
                     config_file=self.cookiecutter_configuration_file
                 )
 
-            if "metadb" not in self.conf:
-                zcfg_file = os.path.join(
-                    self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
-                )
-                print(f"writting zcfg file: {zcfg_file}",file=sys.stderr)
-                with open(zcfg_file, "w") as file:
-                    self.service_configuration.write_zcfg(file)
+            # if "metadb" not in self.conf:
+            zcfg_file = os.path.join(
+                self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
+            )
+            print(f"writting zcfg file: {zcfg_file}",file=sys.stderr)
+            with open(zcfg_file, "w") as file:
+                self.service_configuration.write_zcfg(file)
 
             # checking if service had already been deployed previously
             # if yes, delete it before redeploy the new one
@@ -1142,15 +865,11 @@ data:
             if path is not None:
                 app_package_file = os.path.join(
                     path,
-                    "app-package.cwl",
+                    f"app-package.cwl",
                 )
 
-                # Instead of writting the CWL, we write the Argo Workflow. Service.py will read form this file
-                print("Instead of writting the CWL, we write the Argo Workflow. Service.py will read form this file",file=sys.stderr)
-                input_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
                 with open(app_package_file, "w") as file:
-                    # yaml.dump(self.cwl_content, file)
-                    yaml.dump(input_workflow, file)
+                    yaml.dump(self.cwl_content, file)
 
                 shutil.move(path, self.zooservices_folder)
 
@@ -1173,10 +892,6 @@ data:
 
     def DeployProcess(conf, inputs, outputs):
         try:
-            print(f"conf = {json.dumps(conf, indent=4)}", file=sys.stderr)
-            print(f"inputs = {json.dumps(inputs, indent=4)}", file=sys.stderr)
-            print(f"outputs = {json.dumps(outputs, indent=4)}", file=sys.stderr)
-            print(f"zoo.__file__ = {zoo.__file__}, file=sys.stderr")
             if "applicationPackage" in inputs.keys() and "isArray" in inputs["applicationPackage"].keys() and inputs["applicationPackage"]["isArray"]=="true":
                 for i in range(int(inputs["applicationPackage"]["length"])):
                     lInputs = {"applicationPackage": {"value": inputs["applicationPackage"]["value"][i]}}
