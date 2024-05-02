@@ -1048,7 +1048,8 @@ data:
             cwl_dummy = re.sub(r"\$LABEL", 'Water body detection based on NDWI and otsu threshold', cwl_dummy)
             # from cwl_dummy replace $DOC with 'Water body detection based on NDWI and otsu threshold'
             cwl_dummy = re.sub(r"\$DOC", 'Water body detection based on NDWI and otsu threshold', cwl_dummy)
-            cwl_content = yaml.safe_load(cwl_dummy)
+            
+            cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
             
             return cwl_content
 
