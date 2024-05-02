@@ -132,8 +132,12 @@ data:
             print(f"process.title = {process.title}",file=sys.stderr)
             print(f"process.description = {process.description}",file=sys.stderr)
 
+            print("adding inputs",file=sys.stderr)
             process.add_inputs_from_cwl(workflow.inputs, len(workflow.id))
+            print(f"inputs = {process.inputs}",file=sys.stderr)
+            print("adding outputs",file=sys.stderr)
             process.add_outputs_from_cwl(workflow.outputs, len(workflow.id))
+            print(f"outputs = {process.outputs}",file=sys.stderr)
 
             return process
 
