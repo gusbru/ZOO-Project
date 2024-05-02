@@ -7,6 +7,7 @@ data:
   DeploymentProcess.py: |+
     #
     #
+    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -136,7 +137,7 @@ data:
             process.add_inputs_from_cwl(workflow.inputs, len(workflow.id))
             print(f"inputs = {process.inputs}",file=sys.stderr)
             print("adding outputs",file=sys.stderr)
-            # process.add_outputs_from_cwl(workflow.outputs, len(workflow.id))
+            process.add_outputs_from_cwl(workflow.outputs, len(workflow.id))
             print(f"outputs = {process.outputs}",file=sys.stderr)
 
             return process
@@ -146,8 +147,9 @@ data:
             """
             Adds a process input from a CWL input representation.
             """
-
+            print(f"add_inputs_from_cwl. trim_len = {trim_len}",file=sys.stderr)
             for input in inputs:
+                print(f"input = {input}",file=sys.stderr)
                 process_input = ProcessInput.create_from_cwl(input, trim_len)
                 self.inputs.append(process_input)
 
@@ -453,12 +455,14 @@ data:
 
         @classmethod
         def create_from_cwl(cls, input, trim_len):
-
+            print("From ProcessInput.create_from_cwl")
             process_input = cls(
                 input.id[trim_len+1:],
                 input.label,
                 input.doc,
             )
+
+            print(f"process_input = {process_input.__dict__}",file=sys.stderr)
 
             process_input.set_type_from_cwl(input, trim_len)
 
