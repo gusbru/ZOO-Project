@@ -1046,11 +1046,11 @@ data:
             workflow_id = self.conf['lenv'].get('workflow_id', 'workflow_id')
             cwl_dummy = re.sub(r"\$ID", workflow_id, cwl_dummy)
             # # from cwl_dummy replace $LABEL with 'Water body detection based on NDWI and otsu threshold'
-            cwl_dummy = re.sub(r"\$LABEL", 'Water body detection based on NDWI and otsu threshold', cwl_dummy)
+            cwl_dummy = re.sub(r"\$LABEL", 'Waaaaaaaaaaater body detection based on NDWI and otsu threshold', cwl_dummy)
             # # from cwl_dummy replace $DOC with 'Water body detection based on NDWI and otsu threshold'
-            cwl_dummy = re.sub(r"\$DOC", 'Water body detection based on NDWI and otsu threshold', cwl_dummy)
+            cwl_dummy = re.sub(r"\$DOC", 'Waaaaaaaaaaater body detection based on NDWI and otsu threshold', cwl_dummy)
             
-            cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            cwl_content = yaml.safe_load(cwl_dummy)
             
             return cwl_content
 
