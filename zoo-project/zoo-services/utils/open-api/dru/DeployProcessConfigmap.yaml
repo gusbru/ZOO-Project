@@ -1050,20 +1050,22 @@ data:
             type: Directory"""
 
             # this comes from user input
-            argo_workflow_template = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            # argo_workflow_template = yaml.safe_load(self.inputs["applicationPackage"]["value"])
             
-            version = argo_workflow_template.get("metadata", {}).get("version", "unknown")
-            workflow_id = argo_workflow_template.get("metadata", {}).get("name", "unknown") # TODO: needs to match conf[...]
-            title = argo_workflow_template.get("metadata", {}).get("title", "")
-            description = argo_workflow_template.get("metadata", {}).get("description", "")
+            # version = argo_workflow_template.get("metadata", {}).get("version", "unknown")
+            # workflow_id = argo_workflow_template.get("metadata", {}).get("name", "unknown") # TODO: needs to match conf[...]
+            # title = argo_workflow_template.get("metadata", {}).get("title", "")
+            # description = argo_workflow_template.get("metadata", {}).get("description", "")
             
-            # UPDATE CWL
-            cwl_dummy = re.sub(r"\$VERSION", version, cwl_dummy)
-            cwl_dummy = re.sub(r"\$ID", workflow_id, cwl_dummy)
-            cwl_dummy = re.sub(r"\$LABEL", title, cwl_dummy)
-            cwl_dummy = re.sub(r"\$DOC", description, cwl_dummy)
+            # # UPDATE CWL
+            # cwl_dummy = re.sub(r"\$VERSION", version, cwl_dummy)
+            # cwl_dummy = re.sub(r"\$ID", workflow_id, cwl_dummy)
+            # cwl_dummy = re.sub(r"\$LABEL", title, cwl_dummy)
+            # cwl_dummy = re.sub(r"\$DOC", description, cwl_dummy)
 
-            cwl_content = yaml.safe_load(cwl_dummy)
+            # cwl_content = yaml.safe_load(cwl_dummy)
+            
+            cwl_content = yaml.safe_load(self.inputs["applicationPackage"]["value"])
 
             return cwl_content
 
