@@ -454,14 +454,12 @@ data:
 
         @classmethod
         def create_from_cwl(cls, input, trim_len):
-            print("From ProcessInput.create_from_cwl")
+
             process_input = cls(
                 input.id[trim_len+1:],
                 input.label,
                 input.doc,
             )
-
-            print("process_input ",file=sys.stderr)
 
             process_input.set_type_from_cwl(input, trim_len)
 
