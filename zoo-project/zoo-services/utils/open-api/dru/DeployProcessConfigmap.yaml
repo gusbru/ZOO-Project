@@ -148,7 +148,7 @@ data:
             """
             print(f"add_inputs_from_cwl. trim_len = {trim_len}",file=sys.stderr)
             for input in inputs:
-                print(f"input = {input.__dict__}",file=sys.stderr)
+                print("input =",file=sys.stderr)
                 process_input = ProcessInput.create_from_cwl(input, trim_len)
                 self.inputs.append(process_input)
 
@@ -461,7 +461,7 @@ data:
                 input.doc,
             )
 
-            print(f"process_input = {process_input.__dict__}",file=sys.stderr)
+            print("process_input ",file=sys.stderr)
 
             process_input.set_type_from_cwl(input, trim_len)
 
