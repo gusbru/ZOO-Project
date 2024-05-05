@@ -67,7 +67,7 @@ data:
             self.outputs = []
 
         def __repr__(self):
-            return f"Process(identifier={self.identifier}, version={self.version}, title={self.title}, description={self.description}, store_supported={self.store_supported}, status_supported={self.status_supported}, service_type={self.service_type}, service_provider={self.service_provider}, version={self.version}, inputs={self.inputs}, outputs={self.outputs})"
+            return f"Process(\n\tidentifier={self.identifier}, \n\tversion={self.version}, \n\ttitle={self.title}, \n\tdescription={self.description}, \n\tstore_supported={self.store_supported}, \n\tstatus_supported={self.status_supported}, \n\tservice_type={self.service_type}, \n\tservice_provider={self.service_provider}, \n\tversion={self.version}, \n\tinputs={self.inputs}, \n\toutputs={self.outputs})"
 
         
         @classmethod
