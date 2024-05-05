@@ -204,7 +204,17 @@ data:
 
             print(f"inputs = {process.inputs}",file=sys.stderr)
             print("adding outputs",file=sys.stderr)
-            process.add_outputs_from_cwl(workflow.outputs, len(workflow.id)) 
+            # process.add_outputs_from_cwl(workflow.outputs, len(workflow.id))
+            out1 = ProcessOutput(
+                identifier="stac",
+                title="STAC",
+                description="STAC item",
+                input_type="string"
+            )
+            out1.min_occurs = 1
+            out1.max_occurs = 1
+            process.outputs = [out1]
+
             print(f"outputs = {process.outputs}",file=sys.stderr)
 
             print(f"process after = {process}",file=sys.stderr)
