@@ -151,8 +151,8 @@ data:
 
             print("adding inputs",file=sys.stderr)
             # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
-            # identifier, title=None, description=None, input_type="string"
             
+            print(f"workflow_parameters = {workflow_parameters}",file=sys.stderr)
             # for workflow_parameter in workflow_parameters:
             #     process_input = ProcessInput(
             #         identifier=workflow_parameter.get("name"),
