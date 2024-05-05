@@ -66,6 +66,9 @@ data:
             self.inputs = []
             self.outputs = []
 
+        def __repr__(self):
+            return f"Process(identifier={self.identifier}, version={self.version}, title={self.title}, description={self.description}, store_supported={self.store_supported}, status_supported={self.status_supported}, service_type={self.service_type}, service_provider={self.service_provider}, version={self.version}, inputs={self.inputs}, outputs={self.outputs})"
+
         
         @classmethod
         def create_from_cwl(cls, cwl, workflow_id=None):
@@ -130,13 +133,10 @@ data:
                 description=workflow.doc,
             )
 
-            print(f"process.id = {process.identifier}",file=sys.stderr)
-            print(f"process.version = {process.version}",file=sys.stderr)
-            print(f"process.title = {process.title}",file=sys.stderr)
-            print(f"process.description = {process.description}",file=sys.stderr)
+            print(f"process = {process}",file=sys.stderr)
 
             print("adding inputs",file=sys.stderr)
-            # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
+            process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
             print(f"inputs = {process.inputs}",file=sys.stderr)
             print("adding outputs",file=sys.stderr)
             process.add_outputs_from_cwl(workflow.outputs, len(workflow.id)) 
@@ -478,6 +478,9 @@ data:
             self.file_content_type = None
             self.is_directory = False
 
+        def __repr__(self):
+            return f"ProcessInput(identifier={self.identifier}, title={self.title}, description={self.description}, type={self.type}, min_occurs={self.min_occurs}, max_occurs={self.max_occurs}, default_value={self.default_value}, possible_values={self.possible_values}, is_complex={self.is_complex}, is_file={self.is_file}, file_content_type={self.file_content_type}, is_directory={self.is_directory})"
+
         @classmethod
         def create_from_cwl(cls, input, trim_len):
 
@@ -491,6 +494,8 @@ data:
 
             if input.default:
                 process_input.default_value = input.default
+
+            print(f"process_input = {process_input}",file=sys.stderr)
 
             return process_input
 
