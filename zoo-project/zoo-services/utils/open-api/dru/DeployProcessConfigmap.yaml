@@ -133,7 +133,7 @@ data:
                 description=workflow.doc,
             )
 
-            print(f"process = {process}",file=sys.stderr)
+            print(f"process before = {process}",file=sys.stderr)
 
             print("adding inputs",file=sys.stderr)
             process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
@@ -142,6 +142,8 @@ data:
             process.add_outputs_from_cwl(workflow.outputs, len(workflow.id)) 
             print(f"outputs = {process.outputs}",file=sys.stderr)
 
+            print(f"process after = {process}",file=sys.stderr)
+            
             return process
 
 
@@ -150,8 +152,8 @@ data:
             Adds a process input from a CWL input representation.
             """
             print(f"add_inputs_from_cwl. trim_len = {trim_len}",file=sys.stderr)
-            for input in inputs:
-                print("input =",file=sys.stderr)
+            for i, input in enumerate(inputs):
+                print(f"input {i} = {input}",file=sys.stderr)
                 process_input = ProcessInput.create_from_cwl(input, trim_len)
                 self.inputs.append(process_input)
 
@@ -161,7 +163,7 @@ data:
             """
             print(f"add_outputs_from_cwl. trim_len = {trim_len}",file=sys.stderr)
             for i, output in enumerate(outputs):
-                print(f"output {i} =",file=sys.stderr)
+                print(f"output {i} = {output}",file=sys.stderr)
                 process_output = ProcessOutput.create_from_cwl(output, trim_len)
                 self.outputs.append(process_output)
 
@@ -479,7 +481,7 @@ data:
             self.is_directory = False
 
         def __repr__(self):
-            return f"ProcessInput(identifier={self.identifier}, title={self.title}, description={self.description}, type={self.type}, min_occurs={self.min_occurs}, max_occurs={self.max_occurs}, default_value={self.default_value}, possible_values={self.possible_values}, is_complex={self.is_complex}, is_file={self.is_file}, file_content_type={self.file_content_type}, is_directory={self.is_directory})"
+            return f"ProcessInput(\n\tidentifier={self.identifier}, \n\ttitle={self.title}, \n\tdescription={self.description}, \n\ttype={self.type}, \n\tmin_occurs={self.min_occurs}, \n\tmax_occurs={self.max_occurs}, \n\tdefault_value={self.default_value}, \n\tpossible_values={self.possible_values}, \n\tis_complex={self.is_complex}, \n\tis_file={self.is_file}, \n\tfile_content_type={self.file_content_type}, \n\tis_directory={self.is_directory}\n)"
 
         @classmethod
         def create_from_cwl(cls, input, trim_len):
@@ -570,7 +572,7 @@ data:
             self.is_directory = False
 
         def __repr__(self):
-            return f"ProcessOutput(identifier={self.identifier}, title={self.title}, description={self.description}, type={self.type}, min_occurs={self.min_occurs}, max_occurs={self.max_occurs}, default_value={self.default_value}, possible_values={self.possible_values}, is_complex={self.is_complex}, is_file={self.is_file}, file_content_type={self.file_content_type}, is_directory={self.is_directory})"
+            return f"ProcessOutput(\n\tidentifier={self.identifier}, \n\ttitle={self.title}, \n\tdescription={self.description}, \n\ttype={self.type}, \n\tmin_occurs={self.min_occurs}, \n\tmax_occurs={self.max_occurs}, \n\tdefault_value={self.default_value}, \n\tpossible_values={self.possible_values}, \n\tis_complex={self.is_complex}, \n\tis_file={self.is_file}, \n\tfile_content_type={self.file_content_type}, \n\tis_directory={self.is_directory}\n)"
 
         @classmethod
         def create_from_cwl(cls, output, trim_len):
@@ -761,6 +763,8 @@ data:
             print(f"service_provider = {self.service_configuration.service_provider}", file=sys.stderr)
             self.service_configuration.service_type = "Python"
             print(f"service_type = {self.service_configuration.service_type}", file=sys.stderr)
+
+            print(f"service_configuration (complete Process) = {self.service_configuration}", file=sys.stderr)
 
             self.conf["lenv"]["workflow_id"] = self.service_configuration.identifier
             self.conf["lenv"]["service_name"] = self.service_configuration.identifier
