@@ -33,9 +33,16 @@ data:
 
     import sys
     import json
+    import os
+    import shutil
+    from pathlib import Path
+    from urllib.parse import urlparse
+    from collections import namedtuple
+
+    import zoo
     import yaml
-    # from cwl_utils.parser import load_document as load_cwl
-    # from cwl_utils.parser import *
+    from cookiecutter.main import cookiecutter
+
 
     class Process:
         def __init__(
@@ -518,30 +525,30 @@ data:
                 self.max_occurs = 1
                 # 0 means unbounded, TODO: what should be the maxOcccurs value if unbounded is not available?
 
-            elif isinstance(input.type, cwl_v1_0.InputArraySchema):
-                type_name = input.type.items
+            # elif isinstance(input.type, cwl_v1_0.InputArraySchema):
+            #     type_name = input.type.items
 
-                if type_name in self.__class__.cwl_type_map:
-                    type_name = self.__class__.cwl_type_map[type_name]
-                elif type_name == "File":
-                    type_name = "string"
-                    self.file_content_type = "text/plain"
-                elif type_name == "Directory":
-                    type_name = "string"
-                    self.file_content_type = "text/plain"
-                else:
-                    type_name = None
-                self.min_occurs = 1
-                self.max_occurs = 0
+            #     if type_name in self.__class__.cwl_type_map:
+            #         type_name = self.__class__.cwl_type_map[type_name]
+            #     elif type_name == "File":
+            #         type_name = "string"
+            #         self.file_content_type = "text/plain"
+            #     elif type_name == "Directory":
+            #         type_name = "string"
+            #         self.file_content_type = "text/plain"
+            #     else:
+            #         type_name = None
+            #     self.min_occurs = 1
+            #     self.max_occurs = 0
 
-                if not type_name:
-                    raise Exception("Unsupported type: '{0}'".format(type_name))
+            #     if not type_name:
+            #         raise Exception("Unsupported type: '{0}'".format(type_name))
 
-                self.type = type_name
+            #     self.type = type_name
 
-            elif isinstance(input.type, cwl_v1_0.InputEnumSchema):
-                type_name = "string"
-                self.possible_values = [str(s)[trim_len+len(self.identifier)+2:] for s in input.type.symbols]
+            # elif isinstance(input.type, cwl_v1_0.InputEnumSchema):
+            #     type_name = "string"
+            #     self.possible_values = [str(s)[trim_len+len(self.identifier)+2:] for s in input.type.symbols]
 
 
 
@@ -601,31 +608,31 @@ data:
                     )
                 self.type = type_name
 
-            elif isinstance(output.type, cwl_v1_0.OutputArraySchema):
-                type_name = output.type.items
+            # elif isinstance(output.type, cwl_v1_0.OutputArraySchema):
+            #     type_name = output.type.items
 
-                if type_name == "string":
-                    pass
-                elif type_name == "File":
-                    type_name = "string"
-                    self.file_content_type = "text/plain"
-                elif type_name == "Directory":
-                    self.is_complex = True
-                    self.file_content_type = "application/json"
-                else:
-                    raise Exception(
-                        "Unsupported type for output '{0}': {1}".format(
-                            output.id, type_name
-                        )
-                    )
+            #     if type_name == "string":
+            #         pass
+            #     elif type_name == "File":
+            #         type_name = "string"
+            #         self.file_content_type = "text/plain"
+            #     elif type_name == "Directory":
+            #         self.is_complex = True
+            #         self.file_content_type = "application/json"
+            #     else:
+            #         raise Exception(
+            #             "Unsupported type for output '{0}': {1}".format(
+            #                 output.id, type_name
+            #             )
+            #         )
 
-                self.min_occurs = 1
-                self.max_occurs = 0
+            #     self.min_occurs = 1
+            #     self.max_occurs = 0
 
-                if not type_name:
-                    raise Exception("Unsupported type: '{0}'".format(type_name))
+            #     if not type_name:
+            #         raise Exception("Unsupported type: '{0}'".format(type_name))
 
-                self.type = type_name
+            #     self.type = type_name
 
 
 
@@ -653,44 +660,6 @@ data:
     # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
     # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     #
-
-    import os
-
-    try:
-        import zoo
-    except ImportError:
-        print("Not running in zoo instance, using ZooStub object for testing")
-
-        class ZooStub(object):
-            def __init__(self):
-                self.SERVICE_SUCCEEDED = 3
-                self.SERVICE_FAILED = 4
-                self.SERVICE_DEPLOYED = 6
-
-            def update_status(self, conf, progress):
-                print(f"Status {progress}")
-
-            def _(self, message):
-                print(f"invoked _ with {message}")
-
-        conf = {}
-        conf["lenv"] = {"message": ""}
-        zoo = ZooStub()
-        pass
-
-    from cookiecutter.main import cookiecutter
-    import sys
-    import shutil
-    import json
-    from pathlib import Path
-    import sys
-    # from deploy_util import Process
-    import yaml
-    import requests
-    import botocore
-    from urllib.parse import urlparse
-    from collections import namedtuple
-    import os
 
     def get_s3_settings():
         # you can extend this method to get the S3 credentials 
