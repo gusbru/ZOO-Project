@@ -217,6 +217,7 @@ data:
             Adds a process input from a CWL input representation.
             """
             print(f"add_inputs_from_cwl. trim_len = {trim_len}",file=sys.stderr)
+
             for i, input in enumerate(inputs):
                 print(f"input {i} = {input}",file=sys.stderr)
                 process_input = ProcessInput.create_from_cwl(input, trim_len)
@@ -763,6 +764,7 @@ data:
     from urllib.parse import urlparse
     from collections import namedtuple
     import os
+    from kubernetes import client, config, watch
 
 
     def get_s3_settings():
@@ -1042,6 +1044,15 @@ data:
 
     def DeployProcess(conf, inputs, outputs):
         try:
+            os.environ.pop("HTTP_PROXY", None)
+            config.load_config()
+
+            # Create a new client
+            print("Creating a new K8s client", file=sys.stderr)
+            v1 = client.CoreV1Api()
+            rbac_v1 = client.RbacAuthorizationV1Api()
+            custom_api = client.CustomObjectsApi()
+
             if "applicationPackage" in inputs.keys() and "isArray" in inputs["applicationPackage"].keys() and inputs["applicationPackage"]["isArray"]=="true":
                 for i in range(int(inputs["applicationPackage"]["length"])):
                     lInputs = {"applicationPackage": {"value": inputs["applicationPackage"]["value"][i]}}
