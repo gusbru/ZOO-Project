@@ -846,27 +846,32 @@ data:
             return cwl_content
 
         def generate_service(self):
-
+            print("Starting service generation", file=sys.stderr)
             path=None
             print(self.conf["lenv"],file=sys.stderr)
             if "noRunSql" in self.conf["lenv"]:
                 # checking if the template location is remote or local
+                print(f"cookiecutter_template_url = {self.cookiecutter_template_url}", file=sys.stderr)
+                
                 if self.cookiecutter_template_url.endswith(".git"):
-
+                    print(f"Cloning template from {self.cookiecutter_template_url}", file=sys.stderr)
                     template_folder = os.path.join(
                         self.cookiecutter_templates_folder,
                         Path(self.cookiecutter_template_url).stem,
                     )
 
                     # checking if template had already been cloned
+                    print("checking if template had already been cloned", file=sys.stderr)
                     if os.path.isdir(template_folder):
                         shutil.rmtree(template_folder)
 
                     # retrieving the branch to clone
                     # if no branch is specified, we will clone the master branch
+                    print(f"cookiecutter_template_branch = {self.cookiecutter_template_branch}", file=sys.stderr)
                     cookiecutter_template_branch = self.cookiecutter_template_branch
 
                     # cloning the template
+                    print(f"Cloning template from {self.cookiecutter_template_url}", file=sys.stderr)
                     if cookiecutter_template_branch is not None:
                         os.system(
                             f"git clone -b {cookiecutter_template_branch} {self.cookiecutter_template_url} {template_folder}"
@@ -884,6 +889,7 @@ data:
                                     "conf": self.conf["cookiecutter"]}
 
                 # Create project from template
+                print(f"Creating project from template {template_folder}", file=sys.stderr)
                 path = cookiecutter(
                     template_folder,
                     extra_context=cookiecutter_values,
@@ -893,20 +899,23 @@ data:
                     config_file=self.cookiecutter_configuration_file
                 )
 
-            # if "metadb" not in self.conf:
-            zcfg_file = os.path.join(
-                self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
-            )
-            print(f"writting zcfg file: {zcfg_file}",file=sys.stderr)
-            with open(zcfg_file, "w") as file:
-                self.service_configuration.write_zcfg(file)
+            if "metadb" not in self.conf:
+                zcfg_file = os.path.join(
+                    self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
+                )
+                print(f"writting zcfg file: {zcfg_file}",file=sys.stderr)
+                with open(zcfg_file, "w") as file:
+                    self.service_configuration.write_zcfg(file)
 
             # checking if service had already been deployed previously
             # if yes, delete it before redeploy the new one
+            print("checking if service had already been deployed previously", file=sys.stderr)
             old_service = os.path.join(self.zooservices_folder,self.service_configuration.identifier)
             if os.path.isdir(old_service):
+                print(f"removing old service: {old_service}",file=sys.stderr)
                 shutil.rmtree(old_service)
                 if "metadb" not in self.conf:
+                    print(f"removing zcfg file: {zcfg_file}",file=sys.stderr)
                     os.remove(zcfg_file)
 
             if "metadb" in self.conf and not("noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"):
@@ -935,6 +944,7 @@ data:
             self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
             print(f"deployedServiceId = {self.conf['lenv']['deployedServiceId']}", file=sys.stderr)
 
+            print("Service successfully deployed", file=sys.stderr)
             return True
 
     def duplicateMessage(conf,deploy_process):
@@ -967,7 +977,10 @@ data:
                 "service": deploy_process.service_configuration.identifier,
                 "status": "success"
             }
+            print(f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.", file=sys.stderr)
+            print(f"response = {json.dumps(response_json, indent=2)}", file=sys.stderr)
             outputs["Result"]["value"] = json.dumps(response_json)
+            print(f"outputs = {json.dumps(outputs, indent=2)}", file=sys.stderr)
             return zoo.SERVICE_DEPLOYED
         except Exception as e:
             print("Exception in Python service",file=sys.stderr)
