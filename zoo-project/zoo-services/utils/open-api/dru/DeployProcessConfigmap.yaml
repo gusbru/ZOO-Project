@@ -1044,14 +1044,14 @@ data:
 
     def DeployProcess(conf, inputs, outputs):
         try:
-            os.environ.pop("HTTP_PROXY", None)
-            config.load_config()
+            # os.environ.pop("HTTP_PROXY", None)
+            # config.load_config()
 
-            # Create a new client
-            print("Creating a new K8s client", file=sys.stderr)
-            v1 = client.CoreV1Api()
-            rbac_v1 = client.RbacAuthorizationV1Api()
-            custom_api = client.CustomObjectsApi()
+            # # Create a new client
+            # print("Creating a new K8s client", file=sys.stderr)
+            # v1 = client.CoreV1Api()
+            # rbac_v1 = client.RbacAuthorizationV1Api()
+            # custom_api = client.CustomObjectsApi()
 
             if "applicationPackage" in inputs.keys() and "isArray" in inputs["applicationPackage"].keys() and inputs["applicationPackage"]["isArray"]=="true":
                 for i in range(int(inputs["applicationPackage"]["length"])):
