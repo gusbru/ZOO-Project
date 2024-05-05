@@ -136,7 +136,65 @@ data:
             print(f"process before = {process}",file=sys.stderr)
 
             print("adding inputs",file=sys.stderr)
-            process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
+            # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
+            process.inputs = [
+                ProcessInput(
+                        identifier="aoi",
+                        title="area of interest",
+                        description="area of interest as a bounding box",
+                        type="string",
+                        min_occurs=1,
+                        max_occurs=1,
+                        default_value=None,
+                        possible_values=None,
+                        is_complex=False,
+                        is_file=False,
+                        file_content_type=None,
+                        is_directory=False
+                ),
+                ProcessInput(
+                        identifier="bands",
+                        title="bands used for the NDWI",
+                        description="bands used for the NDWI",
+                        type="string",
+                        min_occurs=1,
+                        max_occurs=0,
+                        default_value=['green', 'nir'],
+                        possible_values=None,
+                        is_complex=False,
+                        is_file=False,
+                        file_content_type=None,
+                        is_directory=False
+                ),
+                ProcessInput(
+                        identifier="epsg",
+                        title="EPSG code",
+                        description="EPSG code",
+                        type="string",
+                        min_occurs=1,
+                        max_occurs=1,
+                        default_value="EPSG:4326",
+                        possible_values=None,
+                        is_complex=False,
+                        is_file=False,
+                        file_content_type=None,
+                        is_directory=False
+                ),
+                ProcessInput(
+                        identifier=stac_item,
+                        title="Sentinel-2 STAC items",
+                        description="Sentinel-2 COG STAC item",
+                        type="string",
+                        min_occurs=1,
+                        max_occurs=0,
+                        default_value=None,
+                        possible_values=None,
+                        is_complex=False,
+                        is_file=False,
+                        file_content_type=None,
+                        is_directory=False
+                )
+            ]
             print(f"inputs = {process.inputs}",file=sys.stderr)
             print("adding outputs",file=sys.stderr)
             process.add_outputs_from_cwl(workflow.outputs, len(workflow.id)) 
