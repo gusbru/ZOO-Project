@@ -7,7 +7,6 @@ data:
   DeploymentProcess.py: |+
     #
     #
-    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -135,10 +134,10 @@ data:
             print(f"process.description = {process.description}",file=sys.stderr)
 
             print("adding inputs",file=sys.stderr)
-            # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id))
+            # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
             print(f"inputs = {process.inputs}",file=sys.stderr)
             print("adding outputs",file=sys.stderr)
-            process.add_outputs_from_cwl(workflow.outputs, len(workflow.id))
+            process.add_outputs_from_cwl(workflow.outputs, len(workflow.id)) 
             print(f"outputs = {process.outputs}",file=sys.stderr)
 
             return process
@@ -189,6 +188,7 @@ data:
                 ),
                 file=stream,
             )
+
 
             print("  <DataInputs>", file=stream)
             for input in self.inputs:
@@ -261,34 +261,51 @@ data:
                 self.user=conf["auth_env"]["user"]
             else:
                 self.user="anonymous"
+            print(f"[run_sql] user = {self.user}",file=sys.stderr)
+            
             conn = psycopg2.connect("host=%s port=%s dbname=%s user=%s password=%s" % (conf["metadb"]["host"], conf["metadb"]["port"], conf["metadb"]["dbname"], conf["metadb"]["user"], conf["metadb"]["password"]))
             cur = conn.cursor()
+            
             if "orequest_method" in conf["lenv"]:
                 cur.execute("DELETE FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)" % (self.identifier,self.user))
             conn.commit()
+            
             cur.execute("SELECT id FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)" % (self.identifier,self.user))
+            print(f"Fetching ows_process {self.identifier} for user {self.user} from DB",file=sys.stderr)
             vals = cur.fetchone()
             if vals is not None:
+                print(f"ows_process {self.identifier} for user {self.user} already exists in DB. Returning False",file=sys.stderr)
                 conn.close()
                 return False
             conn.commit()
+            
+            print(f"Inserting CollectionDB.zoo_DeploymentMetadata executable_name {self.service_provider} with type {self.service_type} into DB",file=sys.stderr)
             cur.execute(("INSERT INTO CollectionDB.zoo_DeploymentMetadata"+
                     "(executable_name,service_type_id)"+
                     " VALUES "+
                     " ($q${0}$q$,"+
                     "(SELECT id from CollectionDB.zoo_ServiceTypes WHERE service_type=$q${1}$q$));")
                     .format(self.service_provider,self.service_type))
+            
+            
             cur.execute("INSERT INTO CollectionDB.zoo_PrivateMetadata(id) VALUES (default);")
+            
             cur.execute("INSERT INTO CollectionDB.PrivateMetadataDeploymentMetadataAssignment(private_metadata_id,deployment_metadata_id) VALUES"+
                     "((SELECT last_value FROM CollectionDB.zoo_PrivateMetadata_id_seq),"+
                     "(SELECT last_value FROM CollectionDB.zoo_DeploymentMetadata_id_seq));")
+            
             try:
+                print(f"Select user_id from public.users where name={self.user}",file=sys.stderr)
                 cur.execute("SELECT id from public.users WHERE name = $q${0}$q$".format(self.user))
                 if cur.fetchone() is None:
+                    print(f"User {self.user} not found in public.users. Inserting user into DB",file=sys.stderr)
                     cur.execute("INSERT INTO public.users (name) VALUES ($q${0}$q$)".format(self.user))
             except Exception as e:
+                print("Error while inserting user into public.users",file=sys.stderr)
                 print(e,file=sys.stderr)
                 cur.commit()
+            
+            print(f"Inserting into CollectionDB.ows_Process identifier={self.identifier}, title={self.title}, abstract={self.description}, version={self.version}, user={self.user} into DB",file=sys.stderr)
             cur.execute(("INSERT INTO CollectionDB.ows_Process"+
                     "(identifier,title,abstract,version,user_id,private_metadata_id,mutable,availability)"+
                     "VALUES"+
@@ -300,7 +317,9 @@ data:
                     "(SELECT last_value FROM CollectionDB.PrivateMetadataDeploymentMetadataAssignment_id_seq),"+
                     "true,true);").format(self.identifier,self.title,self.description,self.version,self.user))
             cur.execute("CREATE TEMPORARY TABLE pid AS (select last_value as id from CollectionDB.Descriptions_id_seq);")
+            
             # Inputs treatment
+            print("Inserting inputs into DB",file=sys.stderr)
             for input in self.inputs:
                 if input.is_complex:
                     pass
@@ -332,6 +351,7 @@ data:
                                             999 if input.max_occurs == 0 else input.max_occurs))
                 cur.execute("INSERT INTO CollectionDB.InputDataDescriptionAssignment (input_id,data_description_id) VALUES ((select last_value as id from CollectionDB.Descriptions_id_seq),(select last_value from CollectionDB.ows_DataDescription_id_seq));")
                 cur.execute("INSERT INTO CollectionDB.ProcessInputAssignment(process_id,input_id) VALUES((select id from pid),(select last_value as id from CollectionDB.Descriptions_id_seq));")
+            
             # Output treatment
             for output in self.outputs:
                 if output.is_complex:
@@ -890,6 +910,7 @@ data:
                     os.remove(zcfg_file)
 
             if "metadb" in self.conf and not("noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"):
+                print(f"Running SQL for {self.service_configuration.identifier}", file=sys.stderr)
                 rSql=self.service_configuration.run_sql(self.conf)
                 if not(rSql):
                     return False
