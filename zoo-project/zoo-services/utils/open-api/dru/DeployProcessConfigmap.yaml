@@ -77,61 +77,71 @@ data:
             """
             print(f"cwl = {cwl}",file=sys.stderr)
 
-            cwl_obj = load_cwl(cwl)
+            # cwl_obj = load_cwl(cwl)
 
-            workflows = [
-                item for item in cwl_obj if item.class_ == 'Workflow'
-            ]
-            print(f"workflows = {workflows}",file=sys.stderr)
-            if len(workflows) == 0:
-                raise Exception("No workflow found")
+            # workflows = [
+            #     item for item in cwl_obj if item.class_ == 'Workflow'
+            # ]
+            # print(f"workflows = {workflows}",file=sys.stderr)
+            # if len(workflows) == 0:
+            #     raise Exception("No workflow found")
             
-            print(f"workflow_id = {workflow_id}",file=sys.stderr)
-            if workflow_id is None:
-                workflow = workflows[0]
-            else:
-                workflow = next(
-                    (wf for wf in workflows if wf.id.split("#")[1] == workflow_id), None
-                )
-                if workflow is None:
-                    raise Exception("Workflow '{0}' not found".format(workflow_id))
+            # print(f"workflow_id = {workflow_id}",file=sys.stderr)
+            # if workflow_id is None:
+            #     workflow = workflows[0]
+            # else:
+            #     workflow = next(
+            #         (wf for wf in workflows if wf.id.split("#")[1] == workflow_id), None
+            #     )
+            #     if workflow is None:
+            #         raise Exception("Workflow '{0}' not found".format(workflow_id))
             
-            print(f"workflow = {workflow}",file=sys.stderr)
+            # print(f"workflow = {workflow}",file=sys.stderr)
 
-            version = 'unknown'
-            if workflow.extension_fields and 'https://schema.org/softwareVersion' in workflow.extension_fields:
-                version = workflow.extension_fields['https://schema.org/softwareVersion']
-            elif workflow.extension_fields and 'https://schema.org/version' in workflow.extension_fields:
-                version = workflow.extension_fields['https://schema.org/version']
-            else:
-                # If software version is not specified inside the workflow,
-                # get it from the top level (using legacy code)
+            # version = 'unknown'
+            # if workflow.extension_fields and 'https://schema.org/softwareVersion' in workflow.extension_fields:
+            #     version = workflow.extension_fields['https://schema.org/softwareVersion']
+            # elif workflow.extension_fields and 'https://schema.org/version' in workflow.extension_fields:
+            #     version = workflow.extension_fields['https://schema.org/version']
+            # else:
+            #     # If software version is not specified inside the workflow,
+            #     # get it from the top level (using legacy code)
 
-                software_namespace_prefix = None
-                if "$namespaces" in cwl and isinstance(cwl["$namespaces"], dict):
-                    for (prefix, uri) in cwl["$namespaces"].items():
-                        if uri in [
-                            "https://schema.org/SoftwareApplication",
-                            "https://schema.org/",
-                        ]:
-                            software_namespace_prefix = prefix
+            #     software_namespace_prefix = None
+            #     if "$namespaces" in cwl and isinstance(cwl["$namespaces"], dict):
+            #         for (prefix, uri) in cwl["$namespaces"].items():
+            #             if uri in [
+            #                 "https://schema.org/SoftwareApplication",
+            #                 "https://schema.org/",
+            #             ]:
+            #                 software_namespace_prefix = prefix
 
-                for key in ["softwareVersion", "version"]:
-                    key = "{0}:{1}".format(software_namespace_prefix, key)
-                    if key in cwl:
-                        version = str(cwl[key])
-                        break
+            #     for key in ["softwareVersion", "version"]:
+            #         key = "{0}:{1}".format(software_namespace_prefix, key)
+            #         if key in cwl:
+            #             version = str(cwl[key])
+            #             break
 
-            print(f"version = {version}",file=sys.stderr)
-            print(f"workflow.id = {workflow.id}",file=sys.stderr)
-            id = re.sub(".*#", '', workflow.id)
+            # print(f"version = {version}",file=sys.stderr)
+            # print(f"workflow.id = {workflow.id}",file=sys.stderr)
+            # id = re.sub(".*#", '', workflow.id)
 
+            # process = Process(
+            #     identifier=id,
+            #     version=version,
+            #     title=workflow.label,
+            #     description=workflow.doc,
+            # )
+
+            
+            ################################################################
             process = Process(
-                identifier=id,
-                version=version,
-                title=workflow.label,
-                description=workflow.doc,
+                identifier="water-bodies-argo",
+                version="1.0.0",
+                title="Water Bodies Detection",
+                description="This process detects water bodies in a given area of interest using Sentinel-2 data."
             )
+            ################################################################
 
             print(f"process before = {process}",file=sys.stderr)
 
