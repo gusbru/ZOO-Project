@@ -158,7 +158,7 @@ data:
                 identifier="bands",
                 title="bands used for the NDWI",
                 description="bands used for the NDWI",
-                input_type="string"
+                input_type="list"
             )
             inp2.min_occurs = 1
             inp2.max_occurs = 0
@@ -764,8 +764,6 @@ data:
     from urllib.parse import urlparse
     from collections import namedtuple
     import os
-    from kubernetes import client, config, watch
-
 
     def get_s3_settings():
         # you can extend this method to get the S3 credentials 
@@ -1044,15 +1042,6 @@ data:
 
     def DeployProcess(conf, inputs, outputs):
         try:
-            # os.environ.pop("HTTP_PROXY", None)
-            # config.load_config()
-
-            # # Create a new client
-            # print("Creating a new K8s client", file=sys.stderr)
-            # v1 = client.CoreV1Api()
-            # rbac_v1 = client.RbacAuthorizationV1Api()
-            # custom_api = client.CustomObjectsApi()
-
             if "applicationPackage" in inputs.keys() and "isArray" in inputs["applicationPackage"].keys() and inputs["applicationPackage"]["isArray"]=="true":
                 for i in range(int(inputs["applicationPackage"]["length"])):
                     lInputs = {"applicationPackage": {"value": inputs["applicationPackage"]["value"][i]}}
