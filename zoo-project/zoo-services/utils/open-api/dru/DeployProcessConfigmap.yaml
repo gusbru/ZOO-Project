@@ -71,7 +71,7 @@ data:
 
         
         @classmethod
-        def create_from_cwl(cls, cwl, workflow_id=None):
+        def create_from_cwl(cls, cwl, workflow_id=None, workflow_parameters=[]):
             """
             Creates a Process object from a dictionary representing the CWL YAML file.
             """
@@ -135,9 +135,10 @@ data:
 
             
             ################################################################
+            workflow_id = workflow_id or cwl.get("metadata", {}).get("name", "unknown")
             version = cwl.get("metadata", {}).get("version", "unknown")
-            title = cwl.get("title", "unknown")
-            description = cwl.get("description", "unknown")
+            title = cwl.get("metadata", {}).get("title", "unknown")
+            description = cwl.get("metadata", {}).get("description", "unknown")
             process = Process(
                 identifier=workflow_id,
                 version=version,
@@ -152,68 +153,85 @@ data:
             # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
             # identifier, title=None, description=None, input_type="string"
             
-            inp1 = ProcessInput(
-                identifier="aoi",
-                title="area of interest",
-                description="area of interest as a bounding box",
-                input_type="string"
-            )
-            inp1.min_occurs = 1
-            inp1.max_occurs = 1
-            inp1.default_value = None
-            inp1.possible_values = None
-            inp1.is_complex = False
-            inp1.is_file = False
-            inp1.file_content_type = None
-            inp1.is_directory = False
+            for workflow_parameter in workflow_parameters:
+                process_input = ProcessInput(
+                    identifier=workflow_parameter.get("name"),
+                    title=workflow_parameter.get("title", None),
+                    description=workflow_parameter.get("description", None),
+                    input_type=workflow_parameter.get("input_type", "string")
+                )
 
-            inp2 = ProcessInput(
-                identifier="bands",
-                title="bands used for the NDWI",
-                description="bands used for the NDWI",
-                input_type="list"
-            )
-            inp2.min_occurs = 1
-            inp2.max_occurs = 0
-            inp2.default_value = ['green', 'nir']
-            inp2.possible_values = None
-            inp2.is_complex = False
-            inp2.is_file = False
-            inp2.file_content_type = None
-            inp2.is_directory = False
+                if workflow_parameters.get("default_value"):
+                    process_input.default_value = workflow_parameters.get("default_value")
 
-            inp3 = ProcessInput(
-                identifier="epsg",
-                title="EPSG code",
-                description="EPSG code",
-                input_type="string"
-            )
+                process_input.min_occurs = 1
+                if process_input.input_type == "list":
+                    process_input.max_occurs = 0
 
-            inp3.min_occurs = 1
-            inp3.max_occurs = 1
-            inp3.default_value = "EPSG:4326"
-            inp3.possible_values = None
-            inp3.is_complex = False
-            inp3.is_file = False
-            inp3.file_content_type = None
-            inp3.is_directory = False
+                process.inputs.append(process_input)
 
-            inp4 = ProcessInput(
-                identifier="stac_item",
-                title="Sentinel-2 STAC items",
-                description="Sentinel-2 COG STAC item",
-                input_type="string"
-            )
-            inp4.min_occurs = 1
-            inp4.max_occurs = 0
-            inp4.default_value = None
-            inp4.possible_values = None
-            inp4.is_complex = False
-            inp4.is_file = False
-            inp4.file_content_type = None
-            inp4.is_directory = False
+            # inp1 = ProcessInput(
+            #     identifier="aoi",
+            #     title="area of interest",
+            #     description="area of interest as a bounding box",
+            #     input_type="string"
+            # )
+            # inp1.min_occurs = 1
+            # inp1.max_occurs = 1
+            # inp1.default_value = None
+            # inp1.possible_values = None
+            # inp1.is_complex = False
+            # inp1.is_file = False
+            # inp1.file_content_type = None
+            # inp1.is_directory = False
+
+            # inp2 = ProcessInput(
+            #     identifier="bands",
+            #     title="bands used for the NDWI",
+            #     description="bands used for the NDWI",
+            #     input_type="list"
+            # )
+            # inp2.min_occurs = 1
+            # inp2.max_occurs = 0
+            # inp2.default_value = ['green', 'nir']
+            # inp2.possible_values = None
+            # inp2.is_complex = False
+            # inp2.is_file = False
+            # inp2.file_content_type = None
+            # inp2.is_directory = False
+
+            # inp3 = ProcessInput(
+            #     identifier="epsg",
+            #     title="EPSG code",
+            #     description="EPSG code",
+            #     input_type="string"
+            # )
+
+            # inp3.min_occurs = 1
+            # inp3.max_occurs = 1
+            # inp3.default_value = "EPSG:4326"
+            # inp3.possible_values = None
+            # inp3.is_complex = False
+            # inp3.is_file = False
+            # inp3.file_content_type = None
+            # inp3.is_directory = False
+
+            # inp4 = ProcessInput(
+            #     identifier="stac_item",
+            #     title="Sentinel-2 STAC items",
+            #     description="Sentinel-2 COG STAC item",
+            #     input_type="string"
+            # )
+            # inp4.min_occurs = 1
+            # inp4.max_occurs = 0
+            # inp4.default_value = None
+            # inp4.possible_values = None
+            # inp4.is_complex = False
+            # inp4.is_file = False
+            # inp4.file_content_type = None
+            # inp4.is_directory = False
             
-            process.inputs = [inp1, inp2, inp3, inp4]
+            # process.inputs = [inp1, inp2, inp3, inp4]
 
             print(f"inputs = {process.inputs}",file=sys.stderr)
             print("adding outputs",file=sys.stderr)
@@ -836,11 +854,16 @@ data:
             print(f"service_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
 
             self.cwl_content = self.get_application_package()
+            self.workflow_parameters = self.get_application_parameters_description()
             print(f"cwl_content = {self.cwl_content}", file=sys.stderr)
 
             if "workflow_id" in self.conf["lenv"]:
                 print(f"workflow_id = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
-                self.service_configuration = Process.create_from_cwl(self.cwl_content,self.conf["lenv"]["workflow_id"])
+                self.service_configuration = Process.create_from_cwl(
+                    cwl=self.cwl_content, 
+                    workflow_id=self.conf["lenv"]["workflow_id"], 
+                    workflow_parameters=self.workflow_parameters
+                )
             else:
                 self.service_configuration = Process.create_from_cwl(self.cwl_content)
                 print(f"workflow_id = {self.service_configuration.identifier}", file=sys.stderr)
@@ -928,6 +951,9 @@ data:
             # User is supposed to send Argo Workflow in the input
             argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
 
+            # delete key parameters
+            argo_workflow.pop("parameters", None)
+
             # version = argo_workflow.get("metadata", {}).get("version", "unknown")
             # # from cwl_dummy replace $VERSION with version
             # cwl_dummy = re.sub(r"\$VERSION", version, cwl_dummy)
@@ -950,6 +976,16 @@ data:
             # cwl_content = yaml.safe_load(cwl_dummy)
             
             return argo_workflow
+        
+        def get_application_parameters_description(self) -> list:
+            if "applicationPackage" not in self.inputs.keys():
+                raise ValueError("The inputs dot not include applicationPackage")
+            
+            argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            parameters = argo_workflow.get("parameters", [])
+
+            return parameters
+
 
         def generate_service(self):
             print("Starting service generation", file=sys.stderr)
