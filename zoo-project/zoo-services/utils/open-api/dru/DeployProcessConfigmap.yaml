@@ -7,6 +7,7 @@ data:
   DeploymentProcess.py: |+
     #
     #
+    #
     # Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
     #
     # Copyright 2023 Terradue. All rights reserved.
@@ -155,18 +156,24 @@ data:
             print(f"workflow_parameters = {workflow_parameters}",file=sys.stderr)
             for workflow_parameter in workflow_parameters:
                 process_input = ProcessInput(
-                    identifier=workflow_parameter.get("name"),
+                    identifier=workflow_parameter.get("name", "unknown"),
                     title=workflow_parameter.get("title", "unknown"),
                     description=workflow_parameter.get("description", "unknown"),
                     input_type=workflow_parameter.get("input_type", "string")
                 )
 
-                if workflow_parameters.get("default_value"):
-                    process_input.default_value = workflow_parameters.get("default_value")
-
                 process_input.min_occurs = 1
                 if process_input.type == "list":
                     process_input.max_occurs = 0
+                else:
+                    process_input.max_occurs = 1
+
+                process_input.default_value = None
+                process_input.possible_values = None
+                process_input.is_complex = False
+                process_input.is_file = False
+                process_input.file_content_type = None
+                process_input.is_directory = False
 
                 process.inputs.append(process_input)
 
