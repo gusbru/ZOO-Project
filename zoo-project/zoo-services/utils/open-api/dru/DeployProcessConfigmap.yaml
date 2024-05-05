@@ -82,6 +82,8 @@ data:
             print(f"workflows = {workflows}",file=sys.stderr)
             if len(workflows) == 0:
                 raise Exception("No workflow found")
+            
+            print(f"workflow_id = {workflow_id}",file=sys.stderr)
             if workflow_id is None:
                 workflow = workflows[0]
             else:
@@ -157,7 +159,9 @@ data:
             """
             Adds a process output from a CWL input representation.
             """
-            for output in outputs:
+            print(f"add_outputs_from_cwl. trim_len = {trim_len}",file=sys.stderr)
+            for i, output in enumerate(outputs):
+                print(f"output {i} =",file=sys.stderr)
                 process_output = ProcessOutput.create_from_cwl(output, trim_len)
                 self.outputs.append(process_output)
 
@@ -560,9 +564,12 @@ data:
             self.file_content_type = None
             self.is_directory = False
 
+        def __repr__(self):
+            return f"ProcessOutput(identifier={self.identifier}, title={self.title}, description={self.description}, type={self.type}, min_occurs={self.min_occurs}, max_occurs={self.max_occurs}, default_value={self.default_value}, possible_values={self.possible_values}, is_complex={self.is_complex}, is_file={self.is_file}, file_content_type={self.file_content_type}, is_directory={self.is_directory})"
+
         @classmethod
         def create_from_cwl(cls, output, trim_len):
-
+            print("ProcessOutput.create_from_cwl",file=sys.stderr)
             process_output = cls(
                 output.id[trim_len+1:],
                 output.label,
@@ -570,6 +577,8 @@ data:
             )
 
             process_output.set_type_from_cwl(output)
+
+            print(f"process_output = {process_output}",file=sys.stderr)
 
             return process_output
 
