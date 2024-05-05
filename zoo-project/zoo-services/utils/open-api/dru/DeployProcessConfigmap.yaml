@@ -153,85 +153,85 @@ data:
             # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
             
             print(f"workflow_parameters = {workflow_parameters}",file=sys.stderr)
-            # for workflow_parameter in workflow_parameters:
-            #     process_input = ProcessInput(
-            #         identifier=workflow_parameter.get("name"),
-            #         title=workflow_parameter.get("title", None),
-            #         description=workflow_parameter.get("description", None),
-            #         input_type=workflow_parameter.get("input_type", "string")
-            #     )
+            for workflow_parameter in workflow_parameters:
+                process_input = ProcessInput(
+                    identifier=workflow_parameter.get("name"),
+                    title=workflow_parameter.get("title", "unknown"),
+                    description=workflow_parameter.get("description", "unknown"),
+                    input_type=workflow_parameter.get("input_type", "string")
+                )
 
-            #     if workflow_parameters.get("default_value"):
-            #         process_input.default_value = workflow_parameters.get("default_value")
+                if workflow_parameters.get("default_value"):
+                    process_input.default_value = workflow_parameters.get("default_value")
 
-            #     process_input.min_occurs = 1
-            #     if process_input.input_type == "list":
-            #         process_input.max_occurs = 0
+                process_input.min_occurs = 1
+                if process_input.type == "list":
+                    process_input.max_occurs = 0
 
-            #     process.inputs.append(process_input)
+                process.inputs.append(process_input)
 
-            inp1 = ProcessInput(
-                identifier="aoi",
-                title="area of interest",
-                description="area of interest as a bounding box",
-                input_type="string"
-            )
-            inp1.min_occurs = 1
-            inp1.max_occurs = 1
-            inp1.default_value = None
-            inp1.possible_values = None
-            inp1.is_complex = False
-            inp1.is_file = False
-            inp1.file_content_type = None
-            inp1.is_directory = False
+            # inp1 = ProcessInput(
+            #     identifier="aoi",
+            #     title="area of interest",
+            #     description="area of interest as a bounding box",
+            #     input_type="string"
+            # )
+            # inp1.min_occurs = 1
+            # inp1.max_occurs = 1
+            # inp1.default_value = None
+            # inp1.possible_values = None
+            # inp1.is_complex = False
+            # inp1.is_file = False
+            # inp1.file_content_type = None
+            # inp1.is_directory = False
 
-            inp2 = ProcessInput(
-                identifier="bands",
-                title="bands used for the NDWI",
-                description="bands used for the NDWI",
-                input_type="list"
-            )
-            inp2.min_occurs = 1
-            inp2.max_occurs = 0
-            inp2.default_value = ['green', 'nir']
-            inp2.possible_values = None
-            inp2.is_complex = False
-            inp2.is_file = False
-            inp2.file_content_type = None
-            inp2.is_directory = False
+            # inp2 = ProcessInput(
+            #     identifier="bands",
+            #     title="bands used for the NDWI",
+            #     description="bands used for the NDWI",
+            #     input_type="list"
+            # )
+            # inp2.min_occurs = 1
+            # inp2.max_occurs = 0
+            # inp2.default_value = ['green', 'nir']
+            # inp2.possible_values = None
+            # inp2.is_complex = False
+            # inp2.is_file = False
+            # inp2.file_content_type = None
+            # inp2.is_directory = False
 
-            inp3 = ProcessInput(
-                identifier="epsg",
-                title="EPSG code",
-                description="EPSG code",
-                input_type="string"
-            )
+            # inp3 = ProcessInput(
+            #     identifier="epsg",
+            #     title="EPSG code",
+            #     description="EPSG code",
+            #     input_type="string"
+            # )
 
-            inp3.min_occurs = 1
-            inp3.max_occurs = 1
-            inp3.default_value = "EPSG:4326"
-            inp3.possible_values = None
-            inp3.is_complex = False
-            inp3.is_file = False
-            inp3.file_content_type = None
-            inp3.is_directory = False
+            # inp3.min_occurs = 1
+            # inp3.max_occurs = 1
+            # inp3.default_value = "EPSG:4326"
+            # inp3.possible_values = None
+            # inp3.is_complex = False
+            # inp3.is_file = False
+            # inp3.file_content_type = None
+            # inp3.is_directory = False
 
-            inp4 = ProcessInput(
-                identifier="stac_item",
-                title="Sentinel-2 STAC items",
-                description="Sentinel-2 COG STAC item",
-                input_type="string"
-            )
-            inp4.min_occurs = 1
-            inp4.max_occurs = 0
-            inp4.default_value = None
-            inp4.possible_values = None
-            inp4.is_complex = False
-            inp4.is_file = False
-            inp4.file_content_type = None
-            inp4.is_directory = False
+            # inp4 = ProcessInput(
+            #     identifier="stac_item",
+            #     title="Sentinel-2 STAC items",
+            #     description="Sentinel-2 COG STAC item",
+            #     input_type="string"
+            # )
+            # inp4.min_occurs = 1
+            # inp4.max_occurs = 0
+            # inp4.default_value = None
+            # inp4.possible_values = None
+            # inp4.is_complex = False
+            # inp4.is_file = False
+            # inp4.file_content_type = None
+            # inp4.is_directory = False
             
-            process.inputs = [inp1, inp2, inp3, inp4]
+            # process.inputs = [inp1, inp2, inp3, inp4]
 
             print(f"inputs = {process.inputs}",file=sys.stderr)
             print("adding outputs",file=sys.stderr)
