@@ -53,6 +53,7 @@ RUN conda install mamba -n base -c conda-forge && \
     #rm /tmp/ades-dev_env.yaml
 RUN ln -s /usr/miniconda3/envs/${CONDA_ENV_NAME}/bin/kubectl /usr/bin/kubectl
 RUN pip install git+https://github.com/EOEPCA/cwl-wrapper.git
+RUN pip install git+ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/ades_v2.git
 ########################################
 # ZOO_Prerequisites
 
