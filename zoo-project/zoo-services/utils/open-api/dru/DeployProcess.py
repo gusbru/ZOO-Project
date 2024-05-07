@@ -127,6 +127,7 @@ class Process:
         )
         out1.min_occurs = 1
         out1.max_occurs = 1
+        out1.is_complex = True
         process.outputs = [out1]
 
         print(f"outputs = {process.outputs}", file=sys.stderr)
@@ -271,6 +272,7 @@ class Process:
         cur = conn.cursor()
 
         if "orequest_method" in conf["lenv"]:
+            print(f"Delete from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}", file=sys.stderr)
             cur.execute(
                 "DELETE FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)"
                 % (self.identifier, self.user)
@@ -309,6 +311,7 @@ class Process:
             ).format(self.service_provider, self.service_type)
         )
 
+        print("Inserting into CollectionDB.zoo_PrivateMetadata into DB", file=sys.stderr)
         cur.execute(
             "INSERT INTO CollectionDB.zoo_PrivateMetadata(id) VALUES (default);"
         )
@@ -362,6 +365,8 @@ class Process:
                 self.identifier, self.title, self.description, self.version, self.user
             )
         )
+
+        print("Creating temporary table pid", file=sys.stderr)
         cur.execute(
             "CREATE TEMPORARY TABLE pid AS (select last_value as id from CollectionDB.Descriptions_id_seq);"
         )
@@ -372,6 +377,8 @@ class Process:
             if input.is_complex:
                 pass
             else:
+                print(f"input = {input}", file=sys.stderr)
+                print("Inserting into CollectionDB.LiteralDataDomain", file=sys.stderr)
                 cur.execute(
                     "INSERT INTO CollectionDB.LiteralDataDomain (def,data_type_id) VALUES "
                     + "(true,(SELECT id from CollectionDB.PrimitiveDatatypes where name = $q${0}$q$));".format(
@@ -380,6 +387,7 @@ class Process:
                 )
                 if input.possible_values:
                     for i in range(len(input.possible_values)):
+                        print(f"Inserting into CollectionDB.AllowedValues {input.possible_values[i]}", file=sys.stderr)
                         cur.execute(
                             "INSERT INTO CollectionDB.AllowedValues (allowed_value) VALUES ($q${0}$q$);".format(
                                 input.possible_values[i]
@@ -399,6 +407,7 @@ class Process:
                         + "  ((SELECT last_value FROM CollectionDB.ows_DataDescription_id_seq));"
                     )
 
+            print(f"Inserting into CollectionDB.ows_Input {input.identifier}", file=sys.stderr)
             cur.execute(
                 (
                     "INSERT INTO CollectionDB.ows_Input (identifier,title,abstract,min_occurs,max_occurs) VALUES "
@@ -423,6 +432,7 @@ class Process:
             )
 
         # Output treatment
+        print("Inserting outputs into DB", file=sys.stderr)
         for output in self.outputs:
             if output.is_complex:
                 cur.execute(
