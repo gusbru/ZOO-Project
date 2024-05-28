@@ -33,7 +33,7 @@ RUN wget -nv \
     https://repo.anaconda.com/miniconda/$MINICONDA \
     && bash $MINICONDA -b -p /usr/miniconda3 \
     && rm -f $MINICONDA
-ENV PATH="/usr/miniconda3/envs/${CONDA_ENV_NAME}/bin:/usr/miniconda3/bin:${PATH}"
+ENV PATH="/usr/miniconda3/envs/ades-dev/bin:/usr/miniconda3/bin:${PATH}"
 COPY docker/dru/ades-dev_env.yaml /tmp/ades-dev_env.yaml
 #ARG CONDA_ENV_NAME=$(cat /tmp/ades-dev_env.yaml | grep 'name:' | awk {'print $2'})
 RUN conda install mamba -n base -c conda-forge && \
