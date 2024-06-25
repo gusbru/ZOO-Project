@@ -28,7 +28,6 @@ import json
 import os
 import shutil
 from pathlib import Path
-from urllib.parse import urlparse
 from collections import namedtuple
 
 import zoo
@@ -245,7 +244,7 @@ class Process:
                 print("      </LiteralData>", file=stream)
         print("  </DataOutputs>", file=stream)
 
-    def run_sql(self, conf):
+    def run_sql(self):
         """
         Store the metadata informations in the ZOO-Project database
         """
@@ -253,40 +252,55 @@ class Process:
         import psycopg2.extensions
 
         psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
-        if "auth_env" in conf:
-            self.user = conf["auth_env"]["user"]
-        else:
+
+        # to check if the user is anonymous: use self.conf["lenv"]["cwd"]
+        # if self.conf["lenv"]["cwd"] == "/usr/lib/cgi-bin" -> anonymous
+        # else -> self.conf["auth_env"]["user"]
+        if self.conf["lenv"]["cwd"] == "/usr/lib/cgi-bin":
             self.user = "anonymous"
+        else:
+            self.user = self.conf["auth_env"]["user"]
+
+        # original code
+        # if "auth_env" in self.conf:
+        #     self.user = self.conf["auth_env"]["user"]
+        # else:
+        #     self.user = "anonymous"
+
         print(f"[run_sql] user = {self.user}", file=sys.stderr)
 
         conn = psycopg2.connect(
             "host=%s port=%s dbname=%s user=%s password=%s"
             % (
-                conf["metadb"]["host"],
-                conf["metadb"]["port"],
-                conf["metadb"]["dbname"],
-                conf["metadb"]["user"],
-                conf["metadb"]["password"],
+                self.conf["metadb"]["host"],
+                self.conf["metadb"]["port"],
+                self.conf["metadb"]["dbname"],
+                self.conf["metadb"]["user"],
+                self.conf["metadb"]["password"],
             )
         )
         cur = conn.cursor()
 
-        if "orequest_method" in conf["lenv"]:
-            print(f"Delete from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}", file=sys.stderr)
+        if "orequest_method" in self.conf["lenv"]:
+            print(
+                f"Delete from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}",
+                file=sys.stderr,
+            )
             cur.execute(
                 "DELETE FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)"
                 % (self.identifier, self.user)
             )
         conn.commit()
 
+        print(
+            f"Select from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}",
+            file=sys.stderr,
+        )
         cur.execute(
             "SELECT id FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)"
             % (self.identifier, self.user)
         )
-        print(
-            f"Fetching ows_process {self.identifier} for user {self.user} from DB",
-            file=sys.stderr,
-        )
+
         vals = cur.fetchone()
         if vals is not None:
             print(
@@ -295,6 +309,8 @@ class Process:
             )
             conn.close()
             return False
+
+        # not sure why we need to commit here
         conn.commit()
 
         print(
@@ -311,11 +327,17 @@ class Process:
             ).format(self.service_provider, self.service_type)
         )
 
-        print("Inserting into CollectionDB.zoo_PrivateMetadata into DB", file=sys.stderr)
+        print(
+            "Inserting into CollectionDB.zoo_PrivateMetadata into DB", file=sys.stderr
+        )
         cur.execute(
             "INSERT INTO CollectionDB.zoo_PrivateMetadata(id) VALUES (default);"
         )
 
+        print(
+            "Inserting into CollectionDB.zoo_DeploymentMetadataAssignment into DB",
+            file=sys.stderr,
+        )
         cur.execute(
             "INSERT INTO CollectionDB.PrivateMetadataDeploymentMetadataAssignment(private_metadata_id,deployment_metadata_id) VALUES"
             + "((SELECT last_value FROM CollectionDB.zoo_PrivateMetadata_id_seq),"
@@ -375,9 +397,10 @@ class Process:
         print("Inserting inputs into DB", file=sys.stderr)
         for input in self.inputs:
             if input.is_complex:
+                print("Complex input. Skipping", file=sys.stderr)
                 pass
             else:
-                print(f"input = {input}", file=sys.stderr)
+                print(f"inserting input = {input}", file=sys.stderr)
                 print("Inserting into CollectionDB.LiteralDataDomain", file=sys.stderr)
                 cur.execute(
                     "INSERT INTO CollectionDB.LiteralDataDomain (def,data_type_id) VALUES "
@@ -385,9 +408,15 @@ class Process:
                         input.type
                     )
                 )
+
                 if input.possible_values:
+                    print("insert input with possible values", file=sys.stderr)
+
                     for i in range(len(input.possible_values)):
-                        print(f"Inserting into CollectionDB.AllowedValues {input.possible_values[i]}", file=sys.stderr)
+                        print(
+                            f"Inserting into CollectionDB.AllowedValues {input.possible_values[i]}",
+                            file=sys.stderr,
+                        )
                         cur.execute(
                             "INSERT INTO CollectionDB.AllowedValues (allowed_value) VALUES ($q${0}$q$);".format(
                                 input.possible_values[i]
@@ -399,7 +428,12 @@ class Process:
                             + "(select last_value as id from CollectionDB.AllowedValues_id_seq)"
                             ");"
                         )
+
                 if input.default_value:
+                    print(
+                        f"insert input with default value: {input.default_value}",
+                        file=sys.stderr,
+                    )
                     cur.execute(
                         "UPDATE CollectionDB.LiteralDataDomain"
                         + " set default_value = $q${0}$q$ ".format(input.default_value)
@@ -407,7 +441,10 @@ class Process:
                         + "  ((SELECT last_value FROM CollectionDB.ows_DataDescription_id_seq));"
                     )
 
-            print(f"Inserting into CollectionDB.ows_Input {input.identifier}", file=sys.stderr)
+            print(
+                f"Inserting into CollectionDB.ows_Input identified = {input.identifier}, title = {input.title}, description = {input.description}, min_occurs = {input.min_occurs}, max_occurs = {999 if input.max_occurs == 0 else input.max_occurs}",
+                file=sys.stderr,
+            )
             cur.execute(
                 (
                     "INSERT INTO CollectionDB.ows_Input (identifier,title,abstract,min_occurs,max_occurs) VALUES "
@@ -435,6 +472,7 @@ class Process:
         print("Inserting outputs into DB", file=sys.stderr)
         for output in self.outputs:
             if output.is_complex:
+                print("Complex output.", file=sys.stderr)
                 cur.execute(
                     "INSERT INTO CollectionDB.ows_Format (def,primitive_format_id) VALUES "
                     + "(true,(SELECT id from CollectionDB.PrimitiveFormats WHERE mime_type='{0}' LIMIT 1));".format(
@@ -443,8 +481,11 @@ class Process:
                         else "text/plain"
                     )
                 )
-            else:
-                pass
+
+            print(
+                f"Inserting into CollectionDB.ows_Output identified = {output.identifier}, title = {output.title}, description = {output.description}",
+                file=sys.stderr,
+            )
             cur.execute(
                 "INSERT INTO CollectionDB.ows_DataDescription (format_id) VALUES ((SELECT last_value FROM CollectionDB.ows_Format_id_seq));"
             )
@@ -462,7 +503,11 @@ class Process:
             cur.execute(
                 "INSERT INTO CollectionDB.ProcessOutputAssignment(process_id,output_id) VALUES((select id from pid),(select last_value as id from CollectionDB.Descriptions_id_seq));"
             )
+
+        print("Dropping temporary table pid", file=sys.stderr)
         cur.execute("DROP TABLE pid;")
+
+        print("Committing", file=sys.stderr)
         conn.commit()
         conn.close()
         return True
@@ -719,32 +764,6 @@ class ProcessOutput:
         #         raise Exception("Unsupported type: '{0}'".format(type_name))
 
         #     self.type = type_name
-
-
-#
-# Author : Blasco Brauzzi, Fabrice Brito, Frank Löschau
-#
-# Copyright 2023 Terradue. All rights reserved.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including with
-# out limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
 
 
 def get_s3_settings():
@@ -1013,7 +1032,7 @@ class DeployService(object):
                 f"Running SQL for {self.service_configuration.identifier}",
                 file=sys.stderr,
             )
-            rSql = self.service_configuration.run_sql(self.conf)
+            rSql = self.service_configuration.run_sql()
             if not (rSql):
                 return False
 
@@ -1061,6 +1080,27 @@ def duplicateMessage(conf, deploy_process):
     return zoo.SERVICE_FAILED
 
 
+def check_k8s_connection():
+    print("Checking connection to kubernetes cluster", file=sys.stderr)
+    try:
+        from kubernetes import config
+        print("Import kubernetes successful", file=sys.stderr)
+
+        # remove HTTP_PROXY from the environment
+        os.environ.pop("HTTP_PROXY", None)
+        print("HTTP_PROXY removed from environment", file=sys.stderr)
+
+        # Load the kube config from the default location
+        # config.load_kube_config()
+        config.load_config()
+        print("Connection to kubernetes cluster successful", file=sys.stderr)
+    except Exception as e:
+        print("Error while checking connection to kubernetes cluster", file=sys.stderr)
+        print(e, file=sys.stderr)
+    finally:
+        print("End check kubernetes cluster connection", file=sys.stderr)
+
+
 def DeployProcess(conf, inputs, outputs):
     try:
         if (
@@ -1082,15 +1122,23 @@ def DeployProcess(conf, inputs, outputs):
                 if not (res):
                     return duplicateMessage(conf, deploy_process)
         else:
+            print("Deploying service", file=sys.stderr)
             deploy_process = DeployService(conf, inputs, outputs)
+
             res = deploy_process.generate_service()
+
             if not (res):
                 return duplicateMessage(conf, deploy_process)
+
+        # test: try to connect to kubernetes
+        check_k8s_connection()
+
         response_json = {
             "message": f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.",
             "service": deploy_process.service_configuration.identifier,
             "status": "success",
         }
+
         print(
             f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.",
             file=sys.stderr,
