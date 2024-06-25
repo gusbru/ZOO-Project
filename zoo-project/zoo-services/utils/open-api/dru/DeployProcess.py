@@ -244,7 +244,7 @@ class Process:
                 print("      </LiteralData>", file=stream)
         print("  </DataOutputs>", file=stream)
 
-    def run_sql(self):
+    def run_sql(self, conf):
         """
         Store the metadata informations in the ZOO-Project database
         """
@@ -253,17 +253,17 @@ class Process:
 
         psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 
-        # to check if the user is anonymous: use self.conf["lenv"]["cwd"]
-        # if self.conf["lenv"]["cwd"] == "/usr/lib/cgi-bin" -> anonymous
-        # else -> self.conf["auth_env"]["user"]
-        if self.conf["lenv"]["cwd"] == "/usr/lib/cgi-bin":
+        # to check if the user is anonymous: use conf["lenv"]["cwd"]
+        # if conf["lenv"]["cwd"] == "/usr/lib/cgi-bin" -> anonymous
+        # else -> conf["auth_env"]["user"]
+        if conf["lenv"]["cwd"] == "/usr/lib/cgi-bin":
             self.user = "anonymous"
         else:
-            self.user = self.conf["auth_env"]["user"]
+            self.user = conf["auth_env"]["user"]
 
         # original code
-        # if "auth_env" in self.conf:
-        #     self.user = self.conf["auth_env"]["user"]
+        # if "auth_env" in conf:
+        #     self.user = conf["auth_env"]["user"]
         # else:
         #     self.user = "anonymous"
 
@@ -272,16 +272,16 @@ class Process:
         conn = psycopg2.connect(
             "host=%s port=%s dbname=%s user=%s password=%s"
             % (
-                self.conf["metadb"]["host"],
-                self.conf["metadb"]["port"],
-                self.conf["metadb"]["dbname"],
-                self.conf["metadb"]["user"],
-                self.conf["metadb"]["password"],
+                conf["metadb"]["host"],
+                conf["metadb"]["port"],
+                conf["metadb"]["dbname"],
+                conf["metadb"]["user"],
+                conf["metadb"]["password"],
             )
         )
         cur = conn.cursor()
 
-        if "orequest_method" in self.conf["lenv"]:
+        if "orequest_method" in conf["lenv"]:
             print(
                 f"Delete from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}",
                 file=sys.stderr,
@@ -1032,7 +1032,7 @@ class DeployService(object):
                 f"Running SQL for {self.service_configuration.identifier}",
                 file=sys.stderr,
             )
-            rSql = self.service_configuration.run_sql()
+            rSql = self.service_configuration.run_sql(conf=self.conf)
             if not (rSql):
                 return False
 
