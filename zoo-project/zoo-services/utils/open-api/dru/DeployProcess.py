@@ -1083,8 +1083,14 @@ def duplicateMessage(conf, deploy_process):
 def check_k8s_connection():
     print("Checking connection to kubernetes cluster", file=sys.stderr)
     try:
+        import socket
         from kubernetes import config
         print("Import kubernetes successful", file=sys.stderr)
+
+        print(f"socket.gethostname() = {socket.gethostname()}", file=sys.stderr)
+
+        print(f"KUBERNETES_SERVICE_HOST = {os.getenv('KUBERNETES_SERVICE_HOST')}", file=sys.stderr)
+        print(f"KUBERNETES_SERVICE_PORT = {os.getenv('KUBERNETES_SERVICE_PORT')}", file=sys.stderr)
 
         # remove HTTP_PROXY from the environment
         os.environ.pop("HTTP_PROXY", None)
