@@ -69,6 +69,7 @@ class UndeployService(object):
 
     def get_zoo_services_folder(self):
         # checking for namespace
+        print("Getting zoo services folder")
         if "zooServicesNamespace" in self.conf and \
                 "namespace" in self.conf["zooServicesNamespace"] and \
                 "servicesNamespace" in self.conf and \
@@ -79,11 +80,16 @@ class UndeployService(object):
             zooservices_folder = self._get_conf_value(
                 key="CONTEXT_DOCUMENT_ROOT", section="renv"
             )
+        
+        print(f"zooservices_folder: {zooservices_folder}", file=sys.stderr)
+        
         return zooservices_folder
 
 
     def get_process_identifier(self):
+        print("Getting process identifier", file=sys.stderr)
         process_identifier = self.conf["lenv"]["deployedServiceId"]
+
         return process_identifier
 
 
@@ -107,17 +113,23 @@ class UndeployService(object):
                 self.user = "anonymous"
             else:
                 self.user = conf["auth_env"]["user"]
+
+            print(f"deleting process from ows_process table for user {self.user} and identifier {self.get_process_identifier()}", file=sys.stderr)
             
             cur.execute("DELETE FROM collectiondb.ows_process WHERE identifier='%s' AND user_id=(select id from public.users where name=$q$%s$q$)" % (self.get_process_identifier(),self.user))
             conn.commit()
             conn.close()
 
         service_folder = os.path.join(self.zooservices_folder, self.service_identifier)
+
+        print(f"Removing service folder {service_folder}", file=sys.stderr)
+
         if os.path.isdir(service_folder):
             shutil.rmtree(service_folder)
 
         for i in [".zcfg",".json"]:
             service_configuration_file = f"{service_folder}"+i
+            print(f"Removing service configuration file {service_configuration_file}", file=sys.stderr)
             if os.path.exists(service_configuration_file):
                 os.remove(service_configuration_file)
 
@@ -131,5 +143,6 @@ def UndeployProcess(conf, inputs, outputs):
 
         return zoo.SERVICE_UNDEPLOYED
     except Exception as err:
+        print(f"Error: {err}", file=sys.stderr)
         conf["lenv"]["message"]=str(err)
         return zoo.SERVICE_FAILED

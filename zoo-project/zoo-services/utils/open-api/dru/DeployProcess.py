@@ -1145,7 +1145,7 @@ def DeployProcess(conf, inputs, outputs):
                 return duplicateMessage(conf, deploy_process)
 
         # test: try to connect to kubernetes
-        check_k8s_connection()
+        check_k8s_connection(conf=conf)
 
         response_json = {
             "message": f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.",
