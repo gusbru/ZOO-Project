@@ -1099,8 +1099,8 @@ def check_k8s_connection(conf):
 
         # Load the kube config from the default location
         # config.load_kube_config()
-        config.load_config()
-        # config.load_incluster_config()
+        # config.load_config()
+        config.load_incluster_config()
         print("Connection to kubernetes cluster successful", file=sys.stderr)
         v1 = client.CoreV1Api()
         print("Listing pods with their IPs:", file=sys.stderr)
