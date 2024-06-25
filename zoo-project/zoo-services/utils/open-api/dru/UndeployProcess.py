@@ -95,10 +95,19 @@ class UndeployService(object):
             psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
             conn = psycopg2.connect("host=%s port=%s dbname=%s user=%s password=%s" % (self.conf["metadb"]["host"], self.conf["metadb"]["port"], self.conf["metadb"]["dbname"], self.conf["metadb"]["user"], self.conf["metadb"]["password"]))
             cur = conn.cursor()
-            if "auth_env" in self.conf:
-                self.user=self.conf["auth_env"]["user"]
+            
+            # if "auth_env" in self.conf:
+            #     self.user=self.conf["auth_env"]["user"]
+            # else:
+            #     self.user="anonymous"
+            # to check if the user is anonymous: use conf["lenv"]["cwd"]
+            # if conf["lenv"]["cwd"] == "/usr/lib/cgi-bin" -> anonymous
+            # else -> conf["auth_env"]["user"]
+            if conf["lenv"]["cwd"] == "/usr/lib/cgi-bin":
+                self.user = "anonymous"
             else:
-                self.user="anonymous"
+                self.user = conf["auth_env"]["user"]
+            
             cur.execute("DELETE FROM collectiondb.ows_process WHERE identifier='%s' AND user_id=(select id from public.users where name=$q$%s$q$)" % (self.get_process_identifier(),self.user))
             conn.commit()
             conn.close()

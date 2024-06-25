@@ -1080,14 +1080,15 @@ def duplicateMessage(conf, deploy_process):
     return zoo.SERVICE_FAILED
 
 
-def check_k8s_connection():
+def check_k8s_connection(conf):
     print("Checking connection to kubernetes cluster", file=sys.stderr)
     try:
-        import socket
-        from kubernetes import config
+        from kubernetes import config, client
         print("Import kubernetes successful", file=sys.stderr)
 
-        print(f"socket.gethostname() = {socket.gethostname()}", file=sys.stderr)
+        # setting the environment variables
+        os.environ["KUBERNETES_SERVICE_HOST"] = conf["renv"]["KUBERNETES_SERVICE_HOST"]
+        os.environ["KUBERNETES_SERVICE_PORT"] = conf["renv"]["KUBERNETES_SERVICE_PORT"]
 
         print(f"KUBERNETES_SERVICE_HOST = {os.getenv('KUBERNETES_SERVICE_HOST')}", file=sys.stderr)
         print(f"KUBERNETES_SERVICE_PORT = {os.getenv('KUBERNETES_SERVICE_PORT')}", file=sys.stderr)
@@ -1098,9 +1099,15 @@ def check_k8s_connection():
 
         # Load the kube config from the default location
         # config.load_kube_config()
-        # config.load_config()
-        config.load_incluster_config()
+        config.load_config()
+        # config.load_incluster_config()
         print("Connection to kubernetes cluster successful", file=sys.stderr)
+        v1 = client.CoreV1Api()
+        print("Listing pods with their IPs:", file=sys.stderr)
+        ret = v1.list_pod_for_all_namespaces(watch=False)
+        for i in ret.items:
+            print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name), file=sys.stderr)
+
     except Exception as e:
         print("Error while checking connection to kubernetes cluster", file=sys.stderr)
         print(e, file=sys.stderr)
