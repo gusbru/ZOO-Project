@@ -1092,7 +1092,8 @@ def check_k8s_connection():
 
         # Load the kube config from the default location
         # config.load_kube_config()
-        config.load_config()
+        # config.load_config()
+        config.load_incluster_config()
         print("Connection to kubernetes cluster successful", file=sys.stderr)
     except Exception as e:
         print("Error while checking connection to kubernetes cluster", file=sys.stderr)
