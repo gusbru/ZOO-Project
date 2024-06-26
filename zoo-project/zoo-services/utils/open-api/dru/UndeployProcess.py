@@ -109,10 +109,10 @@ class UndeployService(object):
             # to check if the user is anonymous: use conf["lenv"]["cwd"]
             # if conf["lenv"]["cwd"] == "/usr/lib/cgi-bin" -> anonymous
             # else -> conf["auth_env"]["user"]
-            if conf["lenv"]["cwd"] == "/usr/lib/cgi-bin":
+            if self.conf["lenv"]["cwd"] == "/usr/lib/cgi-bin":
                 self.user = "anonymous"
             else:
-                self.user = conf["auth_env"]["user"]
+                self.user = self.conf["auth_env"]["user"]
 
             print(f"deleting process from ows_process table for user {self.user} and identifier {self.get_process_identifier()}", file=sys.stderr)
             

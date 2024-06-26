@@ -1087,11 +1087,18 @@ def check_k8s_connection(conf):
         print("Import kubernetes successful", file=sys.stderr)
 
         # setting the environment variables
+        print("Setting environment variables", file=sys.stderr)
+        try:
+            print("conf[renv]", file=sys.stderr)
+            print(conf["renv"], file=sys.stderr)
+        except Exception as e:
+            print(e, file=sys.stderr)
+
         os.environ["KUBERNETES_SERVICE_HOST"] = conf["renv"]["KUBERNETES_SERVICE_HOST"]
         os.environ["KUBERNETES_SERVICE_PORT"] = conf["renv"]["KUBERNETES_SERVICE_PORT"]
 
-        print(f"KUBERNETES_SERVICE_HOST = {os.getenv('KUBERNETES_SERVICE_HOST')}", file=sys.stderr)
-        print(f"KUBERNETES_SERVICE_PORT = {os.getenv('KUBERNETES_SERVICE_PORT')}", file=sys.stderr)
+        print(f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}", file=sys.stderr)
+        print(f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}", file=sys.stderr)
 
         # remove HTTP_PROXY from the environment
         os.environ.pop("HTTP_PROXY", None)
