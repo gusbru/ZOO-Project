@@ -130,12 +130,20 @@ class UndeployService(object):
             if os.path.exists(service_configuration_file):
                 os.remove(service_configuration_file)
 
+    def check_admin(self):
+        roles = self.conf.get("auth_env", {}).get("realm_access", {}).get("roles", [])
+        return "admin" in roles
+
 
 
 def UndeployProcess(conf, inputs, outputs):
     try:
         undeploy_process = UndeployService(conf, inputs, outputs)
 
+        if undeploy_process.check_admin() is False:
+            conf["lenv"]["message"] = "Only admin can undeploy services"
+            return zoo.SERVICE_FAILED
+        
         undeploy_process.remove_service()
 
         return zoo.SERVICE_UNDEPLOYED
