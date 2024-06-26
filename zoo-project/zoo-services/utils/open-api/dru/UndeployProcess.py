@@ -131,7 +131,8 @@ class UndeployService(object):
                 os.remove(service_configuration_file)
 
     def check_admin(self):
-        roles = self.conf.get("auth_env", {}).get("realm_access", {}).get("roles", [])
+        realm_access = json.loads(self.conf.get("auth_env", {}).get("realm_access", ""))
+        roles = realm_access.get("roles", [])
         return "admin" in roles
 
 

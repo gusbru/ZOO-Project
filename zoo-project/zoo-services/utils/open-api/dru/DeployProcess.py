@@ -1092,7 +1092,7 @@ def check_k8s_connection(conf):
             print("conf = ", file=sys.stderr)
             print(json.dumps(conf, indent=2), file=sys.stderr)
             print("env = ", file=sys.stderr)
-            print(json.dumps(os.environ, indent=2), file=sys.stderr)
+            print(os.environ, file=sys.stderr)
         except Exception as e:
             print(e, file=sys.stderr)
 
