@@ -1089,8 +1089,7 @@ def check_k8s_connection(conf):
         # setting the environment variables
         print("Setting environment variables", file=sys.stderr)
         try:
-            print("conf[renv]", file=sys.stderr)
-            print(conf["renv"], file=sys.stderr)
+            print(json.dumps(conf, indent=2), file=sys.stderr)
         except Exception as e:
             print(e, file=sys.stderr)
 

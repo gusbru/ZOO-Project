@@ -69,7 +69,6 @@ class UndeployService(object):
 
     def get_zoo_services_folder(self):
         # checking for namespace
-        print("Getting zoo services folder")
         if "zooServicesNamespace" in self.conf and \
                 "namespace" in self.conf["zooServicesNamespace"] and \
                 "servicesNamespace" in self.conf and \
@@ -80,8 +79,6 @@ class UndeployService(object):
             zooservices_folder = self._get_conf_value(
                 key="CONTEXT_DOCUMENT_ROOT", section="renv"
             )
-        
-        print(f"zooservices_folder: {zooservices_folder}", file=sys.stderr)
         
         return zooservices_folder
 
