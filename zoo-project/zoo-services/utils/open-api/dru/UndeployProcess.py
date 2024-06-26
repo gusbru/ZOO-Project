@@ -132,7 +132,7 @@ class UndeployService(object):
 
     def check_admin(self):
         print("checking if user is admin", file=sys.stderr)
-        realm_access = json.loads(self.conf["auth_env"]["realm_access"])
+        realm_access = json.loads(self.conf["auth_env"]["realm_access"].replace("'", "\""))
         print(f"realm_access: {realm_access}", file=sys.stderr)
         roles = realm_access["roles"]
         print(f"roles: {roles}", file=sys.stderr)
