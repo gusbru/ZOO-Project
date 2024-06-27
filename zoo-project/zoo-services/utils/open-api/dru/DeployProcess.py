@@ -29,10 +29,16 @@ import os
 import shutil
 from pathlib import Path
 from collections import namedtuple
+import logging
 
 import zoo
 import yaml
 from cookiecutter.main import cookiecutter
+
+
+# Configure logging to output to stderr with a timestamp
+logging.basicConfig(stream=sys.stderr, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class Process:
@@ -782,7 +788,7 @@ def get_s3_settings():
 
 class DeployService(object):
     def __init__(self, conf, inputs, outputs):
-        print("Starting DeployService *********************************************", file=sys.stderr)
+        logger("Starting DeployService *********************************************")
         self.conf = conf
         self.inputs = inputs
         self.outputs = outputs
@@ -864,7 +870,7 @@ class DeployService(object):
         self.conf["lenv"]["workflow_id"] = self.service_configuration.identifier
         self.conf["lenv"]["service_name"] = self.service_configuration.identifier
 
-        print("End initializing DeployService *********************************************", file=sys.stderr)
+        logger("End initializing DeployService *********************************************")
 
     def get_zoo_services_folder(self):
         # checking for namespace
@@ -1065,9 +1071,10 @@ class DeployService(object):
             
             print("************************** End SQL ZOO-Kernel **************************", file=sys.stderr)
 
-        print(f"Starting part to copy generated service.py to {self.zooservices_folder}", file=sys.stderr)
         print(f"path = {path}", file=sys.stderr)
         if path is not None:
+            print(f"STARTING PART THAT RUNS ON ZOO-FPM", file=sys.stderr)
+            print(f"Starting part to copy generated service.py to {self.zooservices_folder}", file=sys.stderr)
             print(f"files_and_dirs on path before = {os.listdir(path)}", file=sys.stderr)
 
             print(f"Copying app-package.cwl to path {path}", file=sys.stderr)
@@ -1098,7 +1105,8 @@ class DeployService(object):
             print(f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}", file=sys.stderr)
 
             print(f"removing tmp folder {self.service_tmp_folder}", file=sys.stderr)
-            # shutil.rmtree(self.service_tmp_folder)
+            shutil.rmtree(self.service_tmp_folder)
+            print(f"END PART THAT RUNS ON ZOO-FPM", file=sys.stderr)
 
         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
         print(
