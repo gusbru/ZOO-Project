@@ -1029,6 +1029,8 @@
                             )
                             print("Cookiecutter done", file=sys.stderr)
                             print(f"path = {path}", file=sys.stderr)
+                            files_and_dirs = os.listdir(path)
+                            print(f"files_and_dirs on path = {files_and_dirs}", file=sys.stderr)
                             print("************************** End part that runs on ZOO-FPM **************************", file=sys.stderr)
                 
                         if "metadb" not in self.conf:
@@ -1076,6 +1078,12 @@
                                 path,
                                 "app-package.cwl",
                             )
+                
+                            print("***********************************")
+                            print(f"service_tmp_folder = {self.service_tmp_folder}")
+                            print(f"path = {path}")
+                            print(f"app_package_file = {app_package_file}")
+                            print("***********************************")
                 
                             argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
                             print(f"writing argo_workflow file: {app_package_file}", file=sys.stderr)
