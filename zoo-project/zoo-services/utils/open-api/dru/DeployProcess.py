@@ -788,59 +788,59 @@ class DeployService(object):
         self.outputs = outputs
 
         self.zooservices_folder = self.get_zoo_services_folder()
-        print(f"\nzooservices_folder = {self.zooservices_folder}", file=sys.stderr)
+        print(f"\tzooservices_folder = {self.zooservices_folder}", file=sys.stderr)
 
         self.cookiecutter_configuration_file = self._get_conf_value(
             key="configurationFile", section="cookiecutter"
         )
-        print(f"\ngetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}", file=sys.stderr)
+        print(f"\tgetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}", file=sys.stderr)
         
 
         self.cookiecutter_templates_folder = self._get_conf_value(
             key="templatesPath", section="cookiecutter"
         )
-        print(f"\ncookiecutter_templates_folder = {self.cookiecutter_templates_folder}", file=sys.stderr)
+        print(f"\tcookiecutter_templates_folder = {self.cookiecutter_templates_folder}", file=sys.stderr)
 
         self.cookiecutter_template_url = self._get_conf_value(
             key="templateUrl", section="cookiecutter"
         )
-        print(f"\ncookiecutter_template_url = {self.cookiecutter_template_url}", file=sys.stderr)
+        print(f"\tcookiecutter_template_url = {self.cookiecutter_template_url}", file=sys.stderr)
 
         self.cookiecutter_template_branch = self._get_conf_value_if_exists(
             key="templateBranch", section="cookiecutter"
         )
-        print(f"\ncookiecutter_template_branch = {self.cookiecutter_template_branch}", file=sys.stderr)
+        print(f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}", file=sys.stderr)
 
         self.tmp_folder = self._get_conf_value("tmpPath")
-        print(f"\ntmp_folder = {self.tmp_folder}", file=sys.stderr)
+        print(f"\ttmp_folder = {self.tmp_folder}", file=sys.stderr)
 
         self.process_id = self.conf["lenv"]["usid"]
-        print(f"\nprocess_id = {self.process_id}", file=sys.stderr)
+        print(f"\tprocess_id = {self.process_id}", file=sys.stderr)
 
         self.service_tmp_folder = self.create_service_tmp_folder()
-        print(f"\nservice_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
+        print(f"\tservice_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
 
         self.cwl_content = self.get_application_package()
         self.workflow_parameters = self.get_application_parameters_description()
-        print(f"\ncwl_content = {self.cwl_content}", file=sys.stderr)
+        print(f"\tcwl_content = {self.cwl_content}", file=sys.stderr)
 
         if "workflow_id" in self.conf["lenv"]:
-            print("\nworkflow_id found in conf", file=sys.stderr)
-            print(f"\nworkflow_id = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
+            print("\tworkflow_id found in conf", file=sys.stderr)
+            print(f"\tworkflow_id = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
             self.service_configuration = Process.create_from_cwl(
                 cwl=self.cwl_content,
                 workflow_id=self.conf["lenv"]["workflow_id"],
                 workflow_parameters=self.workflow_parameters,
             )
         else:
-            print("\nworkflow_id not found in conf. Using workflow_id from service_configuration.identifier", file=sys.stderr)
+            print("\tworkflow_id not found in conf. Using workflow_id from service_configuration.identifier", file=sys.stderr)
             self.service_configuration = Process.create_from_cwl(
                 cwl=self.cwl_content,
                 workflow_id=None,
                 workflow_parameters=self.workflow_parameters,
             )
             print(
-                f"\nworkflow_id = {self.service_configuration.identifier}",
+                f"\tworkflow_id = {self.service_configuration.identifier}",
                 file=sys.stderr,
             )
 
@@ -848,16 +848,16 @@ class DeployService(object):
             f"{self.service_configuration.identifier}.service"
         )
         print(
-            f"\nservice_provider = {self.service_configuration.service_provider}",
+            f"\tservice_provider = {self.service_configuration.service_provider}",
             file=sys.stderr,
         )
         self.service_configuration.service_type = "Python"
         print(
-            f"\nservice_type = {self.service_configuration.service_type}", file=sys.stderr
+            f"\tservice_type = {self.service_configuration.service_type}", file=sys.stderr
         )
 
         print(
-            f"\nservice_configuration (complete Process) = {self.service_configuration}",
+            f"\tservice_configuration (complete Process) = {self.service_configuration}",
             file=sys.stderr,
         )
 
@@ -946,21 +946,22 @@ class DeployService(object):
     def generate_service(self):
         print("Starting service generation *********************************************", file=sys.stderr)
         path = None
-        print(f"\nconf[lenv] = {self.conf['lenv']}", file=sys.stderr)
+        print(f"\tconf[lenv] = {self.conf['lenv']}", file=sys.stderr)
         
         if "noRunSql" in self.conf["lenv"]:
             # This part runs on ZOO-FPM
-            print("\nnoRunSql found in conf", file=sys.stderr)
+            print("************************** This part runs on ZOO-FPM **************************", file=sys.stderr)
+            print("\tnoRunSql found in conf", file=sys.stderr)
 
             # checking if the template location is remote or local
             print(
-                f"cookiecutter_template_url = {self.cookiecutter_template_url}",
+                f"\tcookiecutter_template_url = {self.cookiecutter_template_url}",
                 file=sys.stderr,
             )
 
             if self.cookiecutter_template_url.endswith(".git"):
                 print(
-                    f"Cloning template from {self.cookiecutter_template_url}",
+                    f"\tCloning template from {self.cookiecutter_template_url}",
                     file=sys.stderr,
                 )
                 template_folder = os.path.join(
@@ -969,14 +970,14 @@ class DeployService(object):
                 )
 
                 # checking if template had already been cloned
-                print("checking if template had already been cloned", file=sys.stderr)
+                print("\tchecking if template had already been cloned", file=sys.stderr)
                 if os.path.isdir(template_folder):
                     shutil.rmtree(template_folder)
 
                 # retrieving the branch to clone
                 # if no branch is specified, we will clone the master branch
                 print(
-                    f"cookiecutter_template_branch = {self.cookiecutter_template_branch}",
+                    f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}",
                     file=sys.stderr,
                 )
                 cookiecutter_template_branch = self.cookiecutter_template_branch
@@ -1016,8 +1017,7 @@ class DeployService(object):
                 overwrite_if_exists=True,
                 config_file=self.cookiecutter_configuration_file,
             )
-        else:
-            print("noRunSql not found in conf", file=sys.stderr)
+            print("************************** End part that runs on ZOO-FPM **************************", file=sys.stderr)
 
         if "metadb" not in self.conf:
             print("metadb not found in conf", file=sys.stderr)
@@ -1028,27 +1028,26 @@ class DeployService(object):
             with open(zcfg_file, "w") as file:
                 self.service_configuration.write_zcfg(file)
 
-            # checking if service had already been deployed previously
-            # if yes, delete it before redeploy the new one
-            print(
-                "checking if service had already been deployed previously", file=sys.stderr
-            )
-            old_service = os.path.join(
-                self.zooservices_folder, self.service_configuration.identifier
-            )
-            if os.path.isdir(old_service):
-                print(f"removing old service: {old_service}", file=sys.stderr)
-                shutil.rmtree(old_service)
-                if "metadb" not in self.conf:
-                    print(f"removing zcfg file: {zcfg_file}", file=sys.stderr)
-                    os.remove(zcfg_file)
-        else:
-            print("metadb found in conf", file=sys.stderr)
+        # checking if service had already been deployed previously
+        # if yes, delete it before redeploy the new one
+        print(
+            "checking if service had already been deployed previously", file=sys.stderr
+        )
+        old_service = os.path.join(
+            self.zooservices_folder, self.service_configuration.identifier
+        )
+        if os.path.isdir(old_service):
+            print(f"removing old service: {old_service}", file=sys.stderr)
+            shutil.rmtree(old_service)
+            if "metadb" not in self.conf:
+                print(f"removing zcfg file: {zcfg_file}", file=sys.stderr)
+                os.remove(zcfg_file)
 
         if "metadb" in self.conf and not (
             "noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"
         ):
-            print("metadb found in conf and noRunSql not found in conf", file=sys.stderr)
+            print("\tmetadb found in conf and noRunSql not found in conf", file=sys.stderr)
+            print("************************** This part runs on ZOO-Kernel **************************", file=sys.stderr)
             print(
                 f"Running SQL for {self.service_configuration.identifier}",
                 file=sys.stderr,
@@ -1056,22 +1055,26 @@ class DeployService(object):
             rSql = self.service_configuration.run_sql(conf=self.conf)
             if not (rSql):
                 return False
+            
+            print("************************** End SQL ZOO-Kernel **************************", file=sys.stderr)
 
         if path is not None:
-            print(f"Copying app-package.cwl to {path}", file=sys.stderr)
+            print(f"Copying app-package.cwl to path {path}", file=sys.stderr)
             app_package_file = os.path.join(
                 path,
                 "app-package.cwl",
             )
 
             argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
-            print("writing argo_workflow", file=sys.stderr)
+            print(f"writing argo_workflow file: {app_package_file}", file=sys.stderr)
             with open(app_package_file, "w") as file:
                 # yaml.dump(self.cwl_content, file)
                 yaml.dump(argo_workflow, file)
 
+            print(f"moving {path} to {self.zooservices_folder}", file=sys.stderr)
             shutil.move(path, self.zooservices_folder)
 
+            print(f"removing folder {self.service_tmp_folder}", file=sys.stderr)
             shutil.rmtree(self.service_tmp_folder)
 
         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
