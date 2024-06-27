@@ -77,7 +77,7 @@ class Process:
         return f"Process(\n\tidentifier={self.identifier}, \n\tversion={self.version}, \n\ttitle={self.title}, \n\tdescription={self.description}, \n\tstore_supported={self.store_supported}, \n\tstatus_supported={self.status_supported}, \n\tservice_type={self.service_type}, \n\tservice_provider={self.service_provider}, \n\tversion={self.version}, \n\tinputs={self.inputs}, \n\toutputs={self.outputs})"
 
     @classmethod
-    def create_from_cwl(cls, cwl, workflow_id=None, workflow_parameters=[]):
+    def create_from_cwl(cls, cwl, workflow_id=None, workflow_parameters=[], service_type=None):
         """
         Creates a Process object from a dictionary representing the CWL YAML file.
         """
@@ -88,17 +88,22 @@ class Process:
         version = cwl.get("metadata", {}).get("version", "unknown")
         title = cwl.get("metadata", {}).get("title", "unknown")
         description = cwl.get("metadata", {}).get("description", "unknown")
+        service_provider = f"{workflow_id}.service"
 
         logger.info(f"[Process] workflow_id = {workflow_id}")
         logger.info(f"[Process] version = {version}")
         logger.info(f"[Process] title = {title}")
         logger.info(f"[Process] description = {description}")
+        logger.info(f"[Process] service_type = {service_type}")
+        logger.info(f"[Process] service_provider = {service_provider}")
 
         process = Process(
             identifier=workflow_id,
             version=version,
             title=title,
             description=description,
+            service_type=service_type,
+            service_provider=service_provider,
         )
         ################################################################
 
@@ -814,41 +819,28 @@ class DeployService(object):
         logger.info(f"cwl_content = {self.cwl_content}")
 
         logger.info("Creating Process object from Argo Workflow")
+        
+        # conf["lenv"].get("workflow_id") is defined by the URL parameter ?w=<workflow_id>
+        # if not defined, it will be the Argo Workflow name (metadata.name)
+        # Deprecating the use of workflow_id passed as a URL parameter
+        if self.conf["lenv"].get("workflow_id") is not None:
+            logger.warning("workflow_id passing through URL parameter is deprecated. Use Argo Workflow metadata name instead.")
+
         self.service_configuration = Process.create_from_cwl(
             cwl=self.cwl_content,
-            workflow_id=self.conf["lenv"].get("workflow_id"),
+            # workflow_id=self.conf["lenv"].get("workflow_id"),
             workflow_parameters=self.workflow_parameters,
+            service_type="Python"
         )
 
-        # if "workflow_id" in self.conf["lenv"]:
-        #     logger.info("workflow_id found in conf")
-        #     logger.info(f"workflow_id = {self.conf['lenv']['workflow_id']}")
-        #     self.service_configuration = Process.create_from_cwl(
-        #         cwl=self.cwl_content,
-        #         workflow_id=self.conf["lenv"].get("workflow_id"),
-        #         workflow_parameters=self.workflow_parameters,
-        #     )
-        # else:
-        #     logger.info(
-        #         "workflow_id not found in conf. Using workflow_id from service_configuration.identifier"
-        #     )
-        #     self.service_configuration = Process.create_from_cwl(
-        #         cwl=self.cwl_content,
-        #         workflow_id=None,
-        #         workflow_parameters=self.workflow_parameters,
-        #     )
-        #     logger.info(
-        #         f"workflow_id = {self.service_configuration.identifier}",
-        #     )
-
-        self.service_configuration.service_provider = (
-            f"{self.service_configuration.identifier}.service"
-        )
-        logger.info(
-            f"service_provider = {self.service_configuration.service_provider}",
-        )
-        self.service_configuration.service_type = "Python"
-        logger.info(f"service_type = {self.service_configuration.service_type}")
+        # self.service_configuration.service_provider = (
+        #     f"{self.service_configuration.identifier}.service"
+        # )
+        # logger.info(
+        #     f"service_provider = {self.service_configuration.service_provider}",
+        # )
+        # self.service_configuration.service_type = "Python"
+        # logger.info(f"service_type = {self.service_configuration.service_type}")
 
         logger.info(
             f"service_configuration (complete Process) = {self.service_configuration}",
@@ -940,14 +932,14 @@ class DeployService(object):
         return zooservices_folder
 
     def _get_conf_value(self, key, section="main"):
-        logger.info(section)
+        logger.debug(section)
         if key in self.conf[section].keys():
             return self.conf[section][key]
         else:
             raise ValueError(f"{key} not set, check configuration")
 
     def _get_conf_value_if_exists(self, key, section="main"):
-        logger.info(section)
+        logger.debug(section)
         if key in self.conf[section].keys():
             return self.conf[section][key]
         else:
