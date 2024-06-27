@@ -37,7 +37,11 @@ from cookiecutter.main import cookiecutter
 
 
 # Configure logging to output to stderr with a timestamp
-logging.basicConfig(stream=sys.stderr, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    stream=sys.stderr,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -289,8 +293,7 @@ class Process:
 
         if "orequest_method" in conf["lenv"]:
             logger.info(
-                f"Delete from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}",
-                file=sys.stderr,
+                f"Delete from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}"
             )
             cur.execute(
                 "DELETE FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)"
@@ -299,8 +302,7 @@ class Process:
         conn.commit()
 
         logger.info(
-            f"Select from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}",
-            file=sys.stderr,
+            f"Select from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}"
         )
         cur.execute(
             "SELECT id FROM collectiondb.ows_process WHERE identifier=$q$%s$q$ and user_id=(select id from public.users where name=$q$%s$q$)"
@@ -310,8 +312,7 @@ class Process:
         vals = cur.fetchone()
         if vals is not None:
             logger.info(
-                f"ows_process {self.identifier} for user {self.user} already exists in DB. Returning False",
-                file=sys.stderr,
+                f"ows_process {self.identifier} for user {self.user} already exists in DB. Returning False"
             )
             conn.close()
             return False
@@ -321,7 +322,6 @@ class Process:
 
         logger.info(
             f"Inserting CollectionDB.zoo_DeploymentMetadata executable_name {self.service_provider} with type {self.service_type} into DB",
-            file=sys.stderr,
         )
         cur.execute(
             (
@@ -333,16 +333,13 @@ class Process:
             ).format(self.service_provider, self.service_type)
         )
 
-        logger.info(
-            "Inserting into CollectionDB.zoo_PrivateMetadata into DB"
-        )
+        logger.info("Inserting into CollectionDB.zoo_PrivateMetadata into DB")
         cur.execute(
             "INSERT INTO CollectionDB.zoo_PrivateMetadata(id) VALUES (default);"
         )
 
         logger.info(
             "Inserting into CollectionDB.zoo_DeploymentMetadataAssignment into DB",
-            file=sys.stderr,
         )
         cur.execute(
             "INSERT INTO CollectionDB.PrivateMetadataDeploymentMetadataAssignment(private_metadata_id,deployment_metadata_id) VALUES"
@@ -353,15 +350,13 @@ class Process:
         try:
             logger.info(
                 f"Select user_id from public.users where name={self.user}",
-                file=sys.stderr,
             )
             cur.execute(
                 "SELECT id from public.users WHERE name = $q${0}$q$".format(self.user)
             )
             if cur.fetchone() is None:
                 logger.info(
-                    f"User {self.user} not found in public.users. Inserting user into DB",
-                    file=sys.stderr,
+                    f"User {self.user} not found in public.users. Inserting user into DB"
                 )
                 cur.execute(
                     "INSERT INTO public.users (name) VALUES ($q${0}$q$)".format(
@@ -375,7 +370,6 @@ class Process:
 
         logger.info(
             f"Inserting into CollectionDB.ows_Process identifier={self.identifier}, title={self.title}, abstract={self.description}, version={self.version}, user={self.user} into DB",
-            file=sys.stderr,
         )
         cur.execute(
             (
@@ -421,7 +415,6 @@ class Process:
                     for i in range(len(input.possible_values)):
                         logger.info(
                             f"Inserting into CollectionDB.AllowedValues {input.possible_values[i]}",
-                            file=sys.stderr,
                         )
                         cur.execute(
                             "INSERT INTO CollectionDB.AllowedValues (allowed_value) VALUES ($q${0}$q$);".format(
@@ -438,7 +431,6 @@ class Process:
                 if input.default_value:
                     logger.info(
                         f"insert input with default value: {input.default_value}",
-                        file=sys.stderr,
                     )
                     cur.execute(
                         "UPDATE CollectionDB.LiteralDataDomain"
@@ -449,7 +441,6 @@ class Process:
 
             logger.info(
                 f"Inserting into CollectionDB.ows_Input identified = {input.identifier}, title = {input.title}, description = {input.description}, min_occurs = {input.min_occurs}, max_occurs = {999 if input.max_occurs == 0 else input.max_occurs}",
-                file=sys.stderr,
             )
             cur.execute(
                 (
@@ -490,7 +481,6 @@ class Process:
 
             logger.info(
                 f"Inserting into CollectionDB.ows_Output identified = {output.identifier}, title = {output.title}, description = {output.description}",
-                file=sys.stderr,
             )
             cur.execute(
                 "INSERT INTO CollectionDB.ows_DataDescription (format_id) VALUES ((SELECT last_value FROM CollectionDB.ows_Format_id_seq));"
@@ -788,7 +778,9 @@ def get_s3_settings():
 
 class DeployService(object):
     def __init__(self, conf, inputs, outputs):
-        logger.info("Starting DeployService *********************************************")
+        logger.info(
+            "Starting DeployService *********************************************"
+        )
         self.conf = conf
         self.inputs = inputs
         self.outputs = outputs
@@ -799,13 +791,16 @@ class DeployService(object):
         self.cookiecutter_configuration_file = self._get_conf_value(
             key="configurationFile", section="cookiecutter"
         )
-        logger.info(f"\tgetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}")
-        
+        logger.info(
+            f"\tgetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}"
+        )
 
         self.cookiecutter_templates_folder = self._get_conf_value(
             key="templatesPath", section="cookiecutter"
         )
-        logger.info(f"\tcookiecutter_templates_folder = {self.cookiecutter_templates_folder}")
+        logger.info(
+            f"\tcookiecutter_templates_folder = {self.cookiecutter_templates_folder}"
+        )
 
         self.cookiecutter_template_url = self._get_conf_value(
             key="templateUrl", section="cookiecutter"
@@ -815,7 +810,9 @@ class DeployService(object):
         self.cookiecutter_template_branch = self._get_conf_value_if_exists(
             key="templateBranch", section="cookiecutter"
         )
-        logger.info(f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}")
+        logger.info(
+            f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}"
+        )
 
         self.tmp_folder = self._get_conf_value("tmpPath")
         logger.info(f"\ttmp_folder = {self.tmp_folder}")
@@ -839,7 +836,9 @@ class DeployService(object):
                 workflow_parameters=self.workflow_parameters,
             )
         else:
-            logger.info("\tworkflow_id not found in conf. Using workflow_id from service_configuration.identifier")
+            logger.info(
+                "\tworkflow_id not found in conf. Using workflow_id from service_configuration.identifier"
+            )
             self.service_configuration = Process.create_from_cwl(
                 cwl=self.cwl_content,
                 workflow_id=None,
@@ -847,7 +846,6 @@ class DeployService(object):
             )
             logger.info(
                 f"\tworkflow_id = {self.service_configuration.identifier}",
-                file=sys.stderr,
             )
 
         self.service_configuration.service_provider = (
@@ -855,22 +853,20 @@ class DeployService(object):
         )
         logger.info(
             f"\tservice_provider = {self.service_configuration.service_provider}",
-            file=sys.stderr,
         )
         self.service_configuration.service_type = "Python"
-        logger.info(
-            f"\tservice_type = {self.service_configuration.service_type}"
-        )
+        logger.info(f"\tservice_type = {self.service_configuration.service_type}")
 
         logger.info(
             f"\tservice_configuration (complete Process) = {self.service_configuration}",
-            file=sys.stderr,
         )
 
         self.conf["lenv"]["workflow_id"] = self.service_configuration.identifier
         self.conf["lenv"]["service_name"] = self.service_configuration.identifier
 
-        logger.info("End initializing DeployService *********************************************")
+        logger.info(
+            "End initializing DeployService *********************************************"
+        )
 
     def get_zoo_services_folder(self):
         # checking for namespace
@@ -952,25 +948,27 @@ class DeployService(object):
         return parameters
 
     def generate_service(self):
-        logger.info("Starting service generation *********************************************")
+        logger.info(
+            "Starting service generation *********************************************"
+        )
         path = None
         logger.info(f"\tconf[lenv] = {self.conf['lenv']}")
-        
+
         if "noRunSql" in self.conf["lenv"]:
             # This part runs on ZOO-FPM
-            logger.info("************************** This part runs on ZOO-FPM **************************")
+            logger.info(
+                "************************** This part runs on ZOO-FPM **************************"
+            )
             logger.info("\tnoRunSql found in conf")
 
             # checking if the template location is remote or local
             logger.info(
                 f"\tcookiecutter_template_url = {self.cookiecutter_template_url}",
-                file=sys.stderr,
             )
 
             if self.cookiecutter_template_url.endswith(".git"):
                 logger.info(
                     f"\tCloning template from {self.cookiecutter_template_url}",
-                    file=sys.stderr,
                 )
                 template_folder = os.path.join(
                     self.cookiecutter_templates_folder,
@@ -987,14 +985,12 @@ class DeployService(object):
                 # if no branch is specified, we will clone the master branch
                 logger.info(
                     f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}",
-                    file=sys.stderr,
                 )
                 cookiecutter_template_branch = self.cookiecutter_template_branch
 
                 # cloning the template
                 logger.info(
                     f"Cloning template from {self.cookiecutter_template_url}",
-                    file=sys.stderr,
                 )
                 if cookiecutter_template_branch is not None:
                     os.system(
@@ -1030,7 +1026,9 @@ class DeployService(object):
             logger.info(f"path = {path}")
             path_files_and_dirs = os.listdir(path)
             logger.info(f"files_and_dirs on path = {path_files_and_dirs}")
-            logger.info("************************** End part that runs on ZOO-FPM **************************")
+            logger.info(
+                "************************** End part that runs on ZOO-FPM **************************"
+            )
 
         if "metadb" not in self.conf:
             logger.info("metadb not found in conf")
@@ -1043,9 +1041,7 @@ class DeployService(object):
 
         # checking if service had already been deployed previously
         # if yes, delete it before redeploy the new one
-        logger.info(
-            "checking if service had already been deployed previously"
-        )
+        logger.info("checking if service had already been deployed previously")
         old_service = os.path.join(
             self.zooservices_folder, self.service_configuration.identifier
         )
@@ -1060,21 +1056,26 @@ class DeployService(object):
             "noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"
         ):
             logger.info("\tmetadb found in conf and noRunSql not found in conf")
-            logger.info("************************** This part runs on ZOO-Kernel **************************")
+            logger.info(
+                "************************** This part runs on ZOO-Kernel **************************"
+            )
             logger.info(
                 f"Running SQL for {self.service_configuration.identifier}",
-                file=sys.stderr,
             )
             rSql = self.service_configuration.run_sql(conf=self.conf)
             if not (rSql):
                 return False
-            
-            logger.info("************************** End SQL ZOO-Kernel **************************")
+
+            logger.info(
+                "************************** End SQL ZOO-Kernel **************************"
+            )
 
         logger.info(f"path = {path}")
         if path is not None:
             logger.info(f"STARTING PART THAT RUNS ON ZOO-FPM")
-            logger.info(f"Starting part to copy generated service.py to {self.zooservices_folder}")
+            logger.info(
+                f"Starting part to copy generated service.py to {self.zooservices_folder}"
+            )
             logger.info(f"files_and_dirs on path before = {os.listdir(path)}")
 
             logger.info(f"Copying app-package.cwl to path {path}")
@@ -1102,7 +1103,9 @@ class DeployService(object):
             logger.info(f"moving {path} to {self.zooservices_folder}")
             shutil.move(path, self.zooservices_folder)
 
-            logger.info(f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}")
+            logger.info(
+                f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}"
+            )
 
             logger.info(f"removing tmp folder {self.service_tmp_folder}")
             shutil.rmtree(self.service_tmp_folder)
@@ -1111,11 +1114,12 @@ class DeployService(object):
         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
         logger.info(
             f"deployedServiceId = {self.conf['lenv']['deployedServiceId']}",
-            file=sys.stderr,
         )
 
         logger.info("Service successfully deployed")
-        logger.info("End service generation *********************************************")
+        logger.info(
+            "End service generation *********************************************"
+        )
         return True
 
 
@@ -1140,6 +1144,7 @@ def check_k8s_connection(conf):
     logger.info("Checking connection to kubernetes cluster")
     try:
         from kubernetes import config, client
+
         logger.info("Import kubernetes successful")
 
         # setting the environment variables
@@ -1155,8 +1160,12 @@ def check_k8s_connection(conf):
         os.environ["KUBERNETES_SERVICE_HOST"] = conf["renv"]["KUBERNETES_SERVICE_HOST"]
         os.environ["KUBERNETES_SERVICE_PORT"] = conf["renv"]["KUBERNETES_SERVICE_PORT"]
 
-        logger.info(f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}")
-        logger.info(f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}")
+        logger.info(
+            f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}"
+        )
+        logger.info(
+            f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}"
+        )
 
         # remove HTTP_PROXY from the environment
         os.environ.pop("HTTP_PROXY", None)
@@ -1171,7 +1180,9 @@ def check_k8s_connection(conf):
         logger.info("Listing pods with their IPs:")
         ret = v1.list_pod_for_all_namespaces(watch=False)
         for i in ret.items:
-            logger.info("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+            logger.info(
+                "%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name)
+            )
 
     except Exception as e:
         logger.error("Error while checking connection to kubernetes cluster")
@@ -1196,13 +1207,17 @@ def DeployProcess(conf, inputs, outputs):
                 lInputs["applicationPackage"]["mimeType"] = inputs[
                     "applicationPackage"
                 ]["mimeType"][i]
-                logger.info(f"************************* Deploying service {i} *************************")
+                logger.info(
+                    f"************************* Deploying service {i} *************************"
+                )
                 deploy_process = DeployService(conf, lInputs, outputs)
                 res = deploy_process.generate_service()
                 if not (res):
                     return duplicateMessage(conf, deploy_process)
         else:
-            logger.info("************************* Deploying service *************************")
+            logger.info(
+                "************************* Deploying service *************************"
+            )
             deploy_process = DeployService(conf, inputs, outputs)
 
             res = deploy_process.generate_service()
@@ -1218,7 +1233,6 @@ def DeployProcess(conf, inputs, outputs):
 
         logger.info(
             f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.",
-            file=sys.stderr,
         )
         logger.info(f"response = {json.dumps(response_json, indent=2)}")
         outputs["Result"]["value"] = json.dumps(response_json)
