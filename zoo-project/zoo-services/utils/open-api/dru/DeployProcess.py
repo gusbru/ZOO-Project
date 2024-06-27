@@ -913,9 +913,11 @@ class DeployService(object):
 
     def create_service_tmp_folder(self):
         # creating the folder where we will download the applicationPackage
+        print("creating the folder where we will download the applicationPackage", file=sys.stderr)
         tmp_path = os.path.join(self.tmp_folder, f"DeployProcess-{self.process_id}")
         try:
-            os.makedirs(tmp_path)
+            print(f"Creating tmp_path: {tmp_path}", file=sys.stderr)
+            os.makedirs(tmp_path, exist_ok=True)
         except Exception as e:
             print(e, file=sys.stderr)
 
@@ -972,6 +974,7 @@ class DeployService(object):
                 # checking if template had already been cloned
                 print("\tchecking if template had already been cloned", file=sys.stderr)
                 if os.path.isdir(template_folder):
+                    print(f"\tremoving template folder: {template_folder}", file=sys.stderr)
                     shutil.rmtree(template_folder)
 
                 # retrieving the branch to clone
@@ -1017,6 +1020,8 @@ class DeployService(object):
                 overwrite_if_exists=True,
                 config_file=self.cookiecutter_configuration_file,
             )
+            print("Cookiecutter done", file=sys.stderr)
+            print(f"path = {path}", file=sys.stderr)
             print("************************** End part that runs on ZOO-FPM **************************", file=sys.stderr)
 
         if "metadb" not in self.conf:
@@ -1074,8 +1079,8 @@ class DeployService(object):
             print(f"moving {path} to {self.zooservices_folder}", file=sys.stderr)
             shutil.move(path, self.zooservices_folder)
 
-            print(f"removing folder {self.service_tmp_folder}", file=sys.stderr)
-            shutil.rmtree(self.service_tmp_folder)
+            print(f"removing tmp folder {self.service_tmp_folder}", file=sys.stderr)
+            # shutil.rmtree(self.service_tmp_folder)
 
         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
         print(
