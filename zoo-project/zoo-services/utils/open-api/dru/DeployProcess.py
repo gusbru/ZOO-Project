@@ -1103,12 +1103,42 @@ class DeployService(object):
             logger.info(f"path = {path}")
             path_files_and_dirs = os.listdir(path)
             logger.info(f"files_and_dirs on path = {path_files_and_dirs}")
+            logger.info(f"moving the generated service (cookiecutter) located at {path} to {self.zooservices_folder}")
+            shutil.move(path, self.zooservices_folder)
+
+            # checking if service had already been deployed previously
+            # if yes, delete it before redeploy the new one
+            logger.info("checking if service had already been deployed previously")
+            old_service = os.path.join(
+                self.zooservices_folder, self.service_configuration.identifier
+            )
+            if os.path.isdir(old_service):
+                logger.info(f"removing old service: {old_service}")
+                shutil.rmtree(old_service)
+                if "metadb" not in self.conf:
+                    zcfg_file = os.path.join(
+                        self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
+                    )
+                    logger.info(f"removing zcfg file: {zcfg_file}")
+                    os.remove(zcfg_file)
+
+            logger.info(
+                f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}"
+            )
+
+            logger.info(f"removing tmp folder {self.service_tmp_folder}")
+            shutil.rmtree(self.service_tmp_folder)
+
+            # this is the new part. If it works, all the file manipulation above can be removed
+            self._save_template_job_namespace()
+
             logger.info(
                 "************************** End part that runs on ZOO-FPM **************************"
             )
 
         if "metadb" not in self.conf:
             logger.info("metadb not found in conf")
+            
             zcfg_file = os.path.join(
                 self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
             )
@@ -1116,18 +1146,18 @@ class DeployService(object):
             with open(zcfg_file, "w") as file:
                 self.service_configuration.write_zcfg(file)
 
-        # checking if service had already been deployed previously
-        # if yes, delete it before redeploy the new one
-        logger.info("checking if service had already been deployed previously")
-        old_service = os.path.join(
-            self.zooservices_folder, self.service_configuration.identifier
-        )
-        if os.path.isdir(old_service):
-            logger.info(f"removing old service: {old_service}")
-            shutil.rmtree(old_service)
-            if "metadb" not in self.conf:
-                logger.info(f"removing zcfg file: {zcfg_file}")
-                os.remove(zcfg_file)
+        # # checking if service had already been deployed previously
+        # # if yes, delete it before redeploy the new one
+        # logger.info("checking if service had already been deployed previously")
+        # old_service = os.path.join(
+        #     self.zooservices_folder, self.service_configuration.identifier
+        # )
+        # if os.path.isdir(old_service):
+        #     logger.info(f"removing old service: {old_service}")
+        #     shutil.rmtree(old_service)
+        #     if "metadb" not in self.conf:
+        #         logger.info(f"removing zcfg file: {zcfg_file}")
+        #         os.remove(zcfg_file)
 
         if "metadb" in self.conf and not (
             "noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"
@@ -1145,50 +1175,49 @@ class DeployService(object):
                 "************************** End SQL ZOO-Kernel **************************"
             )
 
-        logger.info(f"path = {path}")
-        if path is not None:
-            logger.info(f"STARTING PART THAT RUNS ON ZOO-FPM")
-            logger.info(
-                f"Starting part to copy generated service.py to {self.zooservices_folder}"
-            )
-            logger.info(f"files_and_dirs on path before = {os.listdir(path)}")
+        # logger.info(f"path = {path}")
+        # if path is not None:
+            # logger.info(f"STARTING PART THAT RUNS ON ZOO-FPM")
+            # logger.info(
+            #     f"Starting part to copy generated service.py to {self.zooservices_folder}"
+            # )
+            # logger.info(f"files_and_dirs on path before = {os.listdir(path)}")
 
-            logger.info(f"Copying app-package.cwl to path {path}")
-            app_package_file = os.path.join(
-                path,
-                "app-package.cwl",
-            )
+            # logger.info(f"Copying app-package.cwl to path {path}")
+            # app_package_file = os.path.join(
+            #     path,
+            #     "app-package.cwl",
+            # )
 
-            logger.info(f"files_and_dirs on path after1 = {os.listdir(path)}")
+            # logger.info(f"files_and_dirs on path after1 = {os.listdir(path)}")
 
-            logger.info("***********************************")
-            logger.info(f"service_tmp_folder = {self.service_tmp_folder}")
-            logger.info(f"path = {path}")
-            logger.info(f"app_package_file = {app_package_file}")
-            logger.info("***********************************")
+            # logger.info("***********************************")
+            # logger.info(f"service_tmp_folder = {self.service_tmp_folder}")
+            # logger.info(f"path = {path}")
+            # logger.info(f"app_package_file = {app_package_file}")
+            # logger.info("***********************************")
 
-            argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
-            logger.info(f"writing argo_workflow file: {app_package_file}")
-            with open(app_package_file, "w") as file:
-                # yaml.dump(self.cwl_content, file)
-                yaml.dump(argo_workflow, file)
+            # argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
+            # logger.info(f"writing argo_workflow file: {app_package_file}")
+            # with open(app_package_file, "w") as file:
+                # yaml.dump(argo_workflow, file)
 
-            logger.info(f"files_and_dirs on path after2 = {os.listdir(path)}")
+            # logger.info(f"files_and_dirs on path after2 = {os.listdir(path)}")
 
-            logger.info(f"moving {path} to {self.zooservices_folder}")
-            shutil.move(path, self.zooservices_folder)
+            # logger.info(f"moving the generated service (cookiecutter) located at {path} to {self.zooservices_folder}")
+            # shutil.move(path, self.zooservices_folder)
 
-            logger.info(
-                f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}"
-            )
+            # logger.info(
+            #     f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}"
+            # )
 
-            logger.info(f"removing tmp folder {self.service_tmp_folder}")
-            shutil.rmtree(self.service_tmp_folder)
+            # logger.info(f"removing tmp folder {self.service_tmp_folder}")
+            # shutil.rmtree(self.service_tmp_folder)
 
-            # this is the new part. If it works, all the file manipulation above can be removed
-            self._save_template_job_namespace()
+            # # this is the new part. If it works, all the file manipulation above can be removed
+            # self._save_template_job_namespace()
 
-            logger.info(f"END PART THAT RUNS ON ZOO-FPM")
+            # logger.info(f"END PART THAT RUNS ON ZOO-FPM")
 
         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
         logger.info(
