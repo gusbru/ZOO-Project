@@ -4,13 +4,14 @@ def generate_manifest_header():
     kind: ConfigMap
     metadata:
         name: test-deploy-service-configmap
-    data:
-    """
-
+    data:"""
+            
 
 def read_file(file):
     with open(file, "r") as f:
-        return f.read()
+        # Add indentation to each line
+        indented_lines = ["                " + line for line in f]
+        return "".join(indented_lines)
 
 
 def save_file(file, content):
