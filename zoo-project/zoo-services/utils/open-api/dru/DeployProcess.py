@@ -30,6 +30,7 @@ import shutil
 from pathlib import Path
 from collections import namedtuple
 import logging
+from time import sleep
 
 import zoo
 import yaml
@@ -170,6 +171,7 @@ class Process:
         """
         Writes the configuration file for the Zoo process (.zfcg) to a stream.
         """
+        logger.info("Writing zcfg to stream")
 
         print("[{0}]".format(self.identifier), file=stream)
         if self.title:
@@ -509,14 +511,17 @@ class Process:
         return True
 
     def write_ogc_api_json(self, stream):
+        logger.info("Writing OGC API JSON")
         ogc = self.get_ogc_api_json()
         print(json.dumps(ogc, indent=2), file=stream)
 
     def write_ogc_api_yaml(self, stream):
+        logger.info("Writing OGC API YAML")
         ogc = self.get_ogc_api_json()
         print(yaml.dump(ogc), file=stream)
 
     def get_ogc_api_json(self):
+        logger.info("Getting OGC API JSON")
         ogc = {
             "id": self.identifier,
             "version": self.version,
@@ -1026,6 +1031,8 @@ class DeployService(object):
             logger.info(f"path = {path}")
             path_files_and_dirs = os.listdir(path)
             logger.info(f"files_and_dirs on path = {path_files_and_dirs}")
+            logger.info("I'm so tired... I'll sleep now")
+            sleep(20)
             logger.info(
                 "************************** End part that runs on ZOO-FPM **************************"
             )
@@ -1059,9 +1066,7 @@ class DeployService(object):
             logger.info(
                 "************************** This part runs on ZOO-Kernel **************************"
             )
-            logger.info(
-                f"Running SQL for {self.service_configuration.identifier}",
-            )
+            logger.info(f"Running SQL for {self.service_configuration.identifier}")
             rSql = self.service_configuration.run_sql(conf=self.conf)
             if not (rSql):
                 return False
