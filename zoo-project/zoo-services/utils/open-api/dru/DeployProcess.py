@@ -782,56 +782,65 @@ def get_s3_settings():
 
 class DeployService(object):
     def __init__(self, conf, inputs, outputs):
-        print("Starting DeployService", file=sys.stderr)
+        print("Starting DeployService *********************************************", file=sys.stderr)
         self.conf = conf
         self.inputs = inputs
         self.outputs = outputs
 
         self.zooservices_folder = self.get_zoo_services_folder()
-        print(f"zooservices_folder = {self.zooservices_folder}", file=sys.stderr)
+        print(f"\nzooservices_folder = {self.zooservices_folder}", file=sys.stderr)
 
         self.cookiecutter_configuration_file = self._get_conf_value(
             key="configurationFile", section="cookiecutter"
         )
+        print(f"\ngetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}", file=sys.stderr)
+        
+
         self.cookiecutter_templates_folder = self._get_conf_value(
             key="templatesPath", section="cookiecutter"
         )
+        print(f"\ncookiecutter_templates_folder = {self.cookiecutter_templates_folder}", file=sys.stderr)
+
         self.cookiecutter_template_url = self._get_conf_value(
             key="templateUrl", section="cookiecutter"
         )
+        print(f"\ncookiecutter_template_url = {self.cookiecutter_template_url}", file=sys.stderr)
 
         self.cookiecutter_template_branch = self._get_conf_value_if_exists(
             key="templateBranch", section="cookiecutter"
         )
+        print(f"\ncookiecutter_template_branch = {self.cookiecutter_template_branch}", file=sys.stderr)
 
         self.tmp_folder = self._get_conf_value("tmpPath")
-        print(f"tmp_folder = {self.tmp_folder}", file=sys.stderr)
+        print(f"\ntmp_folder = {self.tmp_folder}", file=sys.stderr)
 
         self.process_id = self.conf["lenv"]["usid"]
-        print(f"process_id = {self.process_id}", file=sys.stderr)
+        print(f"\nprocess_id = {self.process_id}", file=sys.stderr)
 
         self.service_tmp_folder = self.create_service_tmp_folder()
-        print(f"service_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
+        print(f"\nservice_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
 
         self.cwl_content = self.get_application_package()
         self.workflow_parameters = self.get_application_parameters_description()
-        print(f"cwl_content = {self.cwl_content}", file=sys.stderr)
+        print(f"\ncwl_content = {self.cwl_content}", file=sys.stderr)
 
         if "workflow_id" in self.conf["lenv"]:
-            print(f"workflow_id = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
+            print("\nworkflow_id found in conf", file=sys.stderr)
+            print(f"\nworkflow_id = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
             self.service_configuration = Process.create_from_cwl(
                 cwl=self.cwl_content,
                 workflow_id=self.conf["lenv"]["workflow_id"],
                 workflow_parameters=self.workflow_parameters,
             )
         else:
+            print("\nworkflow_id not found in conf. Using workflow_id from service_configuration.identifier", file=sys.stderr)
             self.service_configuration = Process.create_from_cwl(
                 cwl=self.cwl_content,
                 workflow_id=None,
                 workflow_parameters=self.workflow_parameters,
             )
             print(
-                f"workflow_id = {self.service_configuration.identifier}",
+                f"\nworkflow_id = {self.service_configuration.identifier}",
                 file=sys.stderr,
             )
 
@@ -839,21 +848,23 @@ class DeployService(object):
             f"{self.service_configuration.identifier}.service"
         )
         print(
-            f"service_provider = {self.service_configuration.service_provider}",
+            f"\nservice_provider = {self.service_configuration.service_provider}",
             file=sys.stderr,
         )
         self.service_configuration.service_type = "Python"
         print(
-            f"service_type = {self.service_configuration.service_type}", file=sys.stderr
+            f"\nservice_type = {self.service_configuration.service_type}", file=sys.stderr
         )
 
         print(
-            f"service_configuration (complete Process) = {self.service_configuration}",
+            f"\nservice_configuration (complete Process) = {self.service_configuration}",
             file=sys.stderr,
         )
 
         self.conf["lenv"]["workflow_id"] = self.service_configuration.identifier
         self.conf["lenv"]["service_name"] = self.service_configuration.identifier
+
+        print("End initializing DeployService *********************************************", file=sys.stderr)
 
     def get_zoo_services_folder(self):
         # checking for namespace
@@ -933,10 +944,14 @@ class DeployService(object):
         return parameters
 
     def generate_service(self):
-        print("Starting service generation", file=sys.stderr)
+        print("Starting service generation *********************************************", file=sys.stderr)
         path = None
-        print(self.conf["lenv"], file=sys.stderr)
+        print(f"\nconf[lenv] = {self.conf['lenv']}", file=sys.stderr)
+        
         if "noRunSql" in self.conf["lenv"]:
+            # This part runs on ZOO-FPM
+            print("\nnoRunSql found in conf", file=sys.stderr)
+
             # checking if the template location is remote or local
             print(
                 f"cookiecutter_template_url = {self.cookiecutter_template_url}",
@@ -1001,8 +1016,11 @@ class DeployService(object):
                 overwrite_if_exists=True,
                 config_file=self.cookiecutter_configuration_file,
             )
+        else:
+            print("noRunSql not found in conf", file=sys.stderr)
 
         if "metadb" not in self.conf:
+            print("metadb not found in conf", file=sys.stderr)
             zcfg_file = os.path.join(
                 self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
             )
@@ -1010,24 +1028,27 @@ class DeployService(object):
             with open(zcfg_file, "w") as file:
                 self.service_configuration.write_zcfg(file)
 
-        # checking if service had already been deployed previously
-        # if yes, delete it before redeploy the new one
-        print(
-            "checking if service had already been deployed previously", file=sys.stderr
-        )
-        old_service = os.path.join(
-            self.zooservices_folder, self.service_configuration.identifier
-        )
-        if os.path.isdir(old_service):
-            print(f"removing old service: {old_service}", file=sys.stderr)
-            shutil.rmtree(old_service)
-            if "metadb" not in self.conf:
-                print(f"removing zcfg file: {zcfg_file}", file=sys.stderr)
-                os.remove(zcfg_file)
+            # checking if service had already been deployed previously
+            # if yes, delete it before redeploy the new one
+            print(
+                "checking if service had already been deployed previously", file=sys.stderr
+            )
+            old_service = os.path.join(
+                self.zooservices_folder, self.service_configuration.identifier
+            )
+            if os.path.isdir(old_service):
+                print(f"removing old service: {old_service}", file=sys.stderr)
+                shutil.rmtree(old_service)
+                if "metadb" not in self.conf:
+                    print(f"removing zcfg file: {zcfg_file}", file=sys.stderr)
+                    os.remove(zcfg_file)
+        else:
+            print("metadb found in conf", file=sys.stderr)
 
         if "metadb" in self.conf and not (
             "noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"
         ):
+            print("metadb found in conf and noRunSql not found in conf", file=sys.stderr)
             print(
                 f"Running SQL for {self.service_configuration.identifier}",
                 file=sys.stderr,
@@ -1060,6 +1081,7 @@ class DeployService(object):
         )
 
         print("Service successfully deployed", file=sys.stderr)
+        print("End service generation *********************************************", file=sys.stderr)
         return True
 
 
@@ -1140,21 +1162,19 @@ def DeployProcess(conf, inputs, outputs):
                 lInputs["applicationPackage"]["mimeType"] = inputs[
                     "applicationPackage"
                 ]["mimeType"][i]
+                print(f"************************* Deploying service {i} *************************", file=sys.stderr)
                 deploy_process = DeployService(conf, lInputs, outputs)
                 res = deploy_process.generate_service()
                 if not (res):
                     return duplicateMessage(conf, deploy_process)
         else:
-            print("Deploying service", file=sys.stderr)
+            print("************************* Deploying service *************************", file=sys.stderr)
             deploy_process = DeployService(conf, inputs, outputs)
 
             res = deploy_process.generate_service()
 
             if not (res):
                 return duplicateMessage(conf, deploy_process)
-
-        # test: try to connect to kubernetes
-        check_k8s_connection(conf=conf)
 
         response_json = {
             "message": f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.",
