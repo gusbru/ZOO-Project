@@ -52,58 +52,6 @@
                 logger = logging.getLogger(__name__)
                 
                 
-                # TODO: delete this function
-                def check_k8s_connection():
-                    logger.info("Checking connection to kubernetes cluster")
-                    try:
-                        from kubernetes import config, client
-                
-                        logger.info("Import kubernetes successful")
-                
-                        # setting the environment variables
-                        # logger.info("Setting environment variables")
-                        # try:
-                        #     logger.info("conf = ")
-                        #     logger.info(json.dumps(conf, indent=2))
-                        #     logger.info("env = ")
-                        #     logger.info(os.environ)
-                        # except Exception as e:
-                        #     logger.info(e)
-                
-                        # os.environ["KUBERNETES_SERVICE_HOST"] = conf["renv"]["KUBERNETES_SERVICE_HOST"]
-                        # os.environ["KUBERNETES_SERVICE_PORT"] = conf["renv"]["KUBERNETES_SERVICE_PORT"]
-                
-                        # logger.info(
-                        #     f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}"
-                        # )
-                        # logger.info(
-                        #     f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}"
-                        # )
-                
-                        # remove HTTP_PROXY from the environment
-                        os.environ.pop("HTTP_PROXY", None)
-                        logger.info("HTTP_PROXY removed from environment")
-                
-                        # Load the kube config from the default location
-                        # config.load_kube_config()
-                        config.load_config()
-                        # config.load_incluster_config()
-                        logger.info("Connection to kubernetes cluster successful")
-                        v1 = client.CoreV1Api()
-                        logger.info("Listing pods with their IPs:")
-                        ret = v1.list_pod_for_all_namespaces(watch=False)
-                        for i in ret.items:
-                            logger.info(
-                                "%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name)
-                            )
-                
-                    except Exception as e:
-                        logger.error("Error while checking connection to kubernetes cluster")
-                        logger.error(e)
-                    finally:
-                        logger.info("End check kubernetes cluster connection")
-                
-                
                 class Process:
                     def __init__(
                         self,
@@ -140,13 +88,19 @@
                         """
                         Creates a Process object from a dictionary representing the CWL YAML file.
                         """
-                        logger.info(f"cwl = {cwl}")
+                        logger.debug(f"cwl = {cwl}")
                 
                         ################################################################
                         workflow_id = workflow_id or cwl.get("metadata", {}).get("name", "unknown")
                         version = cwl.get("metadata", {}).get("version", "unknown")
                         title = cwl.get("metadata", {}).get("title", "unknown")
                         description = cwl.get("metadata", {}).get("description", "unknown")
+                
+                        logger.info(f"[Process] workflow_id = {workflow_id}")
+                        logger.info(f"[Process] version = {version}")
+                        logger.info(f"[Process] title = {title}")
+                        logger.info(f"[Process] description = {description}")
+                
                         process = Process(
                             identifier=workflow_id,
                             version=version,
@@ -155,9 +109,9 @@
                         )
                         ################################################################
                 
-                        logger.info(f"process before = {process}")
+                        logger.debug(f"process before = {process}")
                 
-                        logger.info("adding inputs")
+                        logger.info("adding process inputs")
                         # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
                 
                         logger.info(f"workflow_parameters = {workflow_parameters}")
@@ -200,7 +154,7 @@
                 
                         logger.info(f"outputs = {process.outputs}")
                 
-                        logger.info(f"process after = {process}")
+                        logger.debug(f"process after = {process}")
                 
                         return process
                 
@@ -860,80 +814,51 @@
                         self.rbac_v1 = None
                         self.custom_api = None
                 
-                        self.zooservices_folder = self.get_zoo_services_folder()
-                        logger.info(f"\tzooservices_folder = {self.zooservices_folder}")
-                
-                        self.cookiecutter_configuration_file = self._get_conf_value(
-                            key="configurationFile", section="cookiecutter"
-                        )
-                        logger.info(
-                            f"\tgetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}"
-                        )
-                
-                        self.cookiecutter_templates_folder = self._get_conf_value(
-                            key="templatesPath", section="cookiecutter"
-                        )
-                        logger.info(
-                            f"\tcookiecutter_templates_folder = {self.cookiecutter_templates_folder}"
-                        )
-                
-                        self.cookiecutter_template_url = self._get_conf_value(
-                            key="templateUrl", section="cookiecutter"
-                        )
-                        logger.info(f"\tcookiecutter_template_url = {self.cookiecutter_template_url}")
-                
-                        self.cookiecutter_template_branch = self._get_conf_value_if_exists(
-                            key="templateBranch", section="cookiecutter"
-                        )
-                        logger.info(
-                            f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}"
-                        )
-                
-                        self.tmp_folder = self._get_conf_value("tmpPath")
-                        logger.info(f"\ttmp_folder = {self.tmp_folder}")
-                
-                        self.process_id = self.conf["lenv"]["usid"]
-                        logger.info(f"\tprocess_id = {self.process_id}")
-                
-                        self.service_tmp_folder = self.create_service_tmp_folder()
-                        logger.info(f"\tservice_tmp_folder = {self.service_tmp_folder}")
+                        self.init_cookiecutter()
                 
                         self.cwl_content = self.get_application_package()
                         self.workflow_parameters = self.get_application_parameters_description()
-                        logger.info(f"\tcwl_content = {self.cwl_content}")
+                        logger.info(f"cwl_content = {self.cwl_content}")
                 
-                        if "workflow_id" in self.conf["lenv"]:
-                            logger.info("\tworkflow_id found in conf")
-                            logger.info(f"\tworkflow_id = {self.conf['lenv']['workflow_id']}")
-                            self.service_configuration = Process.create_from_cwl(
-                                cwl=self.cwl_content,
-                                workflow_id=self.conf["lenv"]["workflow_id"],
-                                workflow_parameters=self.workflow_parameters,
-                            )
-                        else:
-                            logger.info(
-                                "\tworkflow_id not found in conf. Using workflow_id from service_configuration.identifier"
-                            )
-                            self.service_configuration = Process.create_from_cwl(
-                                cwl=self.cwl_content,
-                                workflow_id=None,
-                                workflow_parameters=self.workflow_parameters,
-                            )
-                            logger.info(
-                                f"\tworkflow_id = {self.service_configuration.identifier}",
-                            )
+                        logger.info("Creating Process object from Argo Workflow")
+                        self.service_configuration = Process.create_from_cwl(
+                            cwl=self.cwl_content,
+                            workflow_id=self.conf["lenv"].get("workflow_id"),
+                            workflow_parameters=self.workflow_parameters,
+                        )
+                
+                        # if "workflow_id" in self.conf["lenv"]:
+                        #     logger.info("workflow_id found in conf")
+                        #     logger.info(f"workflow_id = {self.conf['lenv']['workflow_id']}")
+                        #     self.service_configuration = Process.create_from_cwl(
+                        #         cwl=self.cwl_content,
+                        #         workflow_id=self.conf["lenv"].get("workflow_id"),
+                        #         workflow_parameters=self.workflow_parameters,
+                        #     )
+                        # else:
+                        #     logger.info(
+                        #         "workflow_id not found in conf. Using workflow_id from service_configuration.identifier"
+                        #     )
+                        #     self.service_configuration = Process.create_from_cwl(
+                        #         cwl=self.cwl_content,
+                        #         workflow_id=None,
+                        #         workflow_parameters=self.workflow_parameters,
+                        #     )
+                        #     logger.info(
+                        #         f"workflow_id = {self.service_configuration.identifier}",
+                        #     )
                 
                         self.service_configuration.service_provider = (
                             f"{self.service_configuration.identifier}.service"
                         )
                         logger.info(
-                            f"\tservice_provider = {self.service_configuration.service_provider}",
+                            f"service_provider = {self.service_configuration.service_provider}",
                         )
                         self.service_configuration.service_type = "Python"
-                        logger.info(f"\tservice_type = {self.service_configuration.service_type}")
+                        logger.info(f"service_type = {self.service_configuration.service_type}")
                 
                         logger.info(
-                            f"\tservice_configuration (complete Process) = {self.service_configuration}",
+                            f"service_configuration (complete Process) = {self.service_configuration}",
                         )
                 
                         self.conf["lenv"]["workflow_id"] = self.service_configuration.identifier
@@ -943,10 +868,59 @@
                             "End initializing DeployService *********************************************"
                         )
                 
+                    def init_cookiecutter(self):
+                        if not self.is_worker():
+                            return
+                
+                        self.zooservices_folder = self.get_zoo_services_folder()
+                        logger.info(f"zooservices_folder = {self.zooservices_folder}")
+                
+                        self.cookiecutter_configuration_file = self._get_conf_value(
+                            key="configurationFile", section="cookiecutter"
+                        )
+                        logger.info(
+                            f"getting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}"
+                        )
+                
+                        self.cookiecutter_templates_folder = self._get_conf_value(
+                            key="templatesPath", section="cookiecutter"
+                        )
+                        logger.info(
+                            f"cookiecutter_templates_folder = {self.cookiecutter_templates_folder}"
+                        )
+                
+                        self.cookiecutter_template_url = self._get_conf_value(
+                            key="templateUrl", section="cookiecutter"
+                        )
+                        logger.info(f"cookiecutter_template_url = {self.cookiecutter_template_url}")
+                
+                        self.cookiecutter_template_branch = self._get_conf_value_if_exists(
+                            key="templateBranch", section="cookiecutter"
+                        )
+                        logger.info(
+                            f"cookiecutter_template_branch = {self.cookiecutter_template_branch}"
+                        )
+                
+                        self.tmp_folder = self._get_conf_value("tmpPath")
+                        logger.info(f"tmp_folder = {self.tmp_folder}")
+                
+                        self.process_id = self.conf["lenv"]["usid"]
+                        logger.info(f"process_id = {self.process_id}")
+                
+                        self.service_tmp_folder = self.create_service_tmp_folder()
+                        logger.info(f"service_tmp_folder = {self.service_tmp_folder}")
+                
                     def is_worker(self):
                         no_run_sql = "noRunSql" in self.conf["lenv"]
-                        logger.info(f"Checking if we are in a worker (zoo-fpm): {no_run_sql}")
+                        logger.info(f"Checking if it's a worker (zoo-fpm): {no_run_sql}")
                         return no_run_sql
+                
+                    def is_consumer(self):
+                        consumer = "metadb" in self.conf and not (
+                            "noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"
+                        )
+                        logger.info(f"Checking if it's a consumer (zoo-kernel): {consumer}")
+                        return consumer
                 
                     def get_zoo_services_folder(self):
                         # checking for namespace
@@ -1034,25 +1008,25 @@
                             "Starting service generation *********************************************"
                         )
                         path = None
-                        logger.info(f"\tconf[lenv] = {self.conf['lenv']}")
+                        logger.info(f"conf[lenv] = {self.conf['lenv']}")
                 
                         if self.is_worker():
                             # This part runs on ZOO-FPM
                             logger.info(
                                 "************************** This part runs on ZOO-FPM **************************"
                             )
-                            logger.info("\tnoRunSql found in conf")
+                            logger.info("noRunSql found in conf")
                 
                             self.init_kubernetes()
                 
                             # checking if the template location is remote or local
                             logger.info(
-                                f"\tcookiecutter_template_url = {self.cookiecutter_template_url}",
+                                f"cookiecutter_template_url = {self.cookiecutter_template_url}",
                             )
                 
                             if self.cookiecutter_template_url.endswith(".git"):
                                 logger.info(
-                                    f"\tCloning template from {self.cookiecutter_template_url}",
+                                    f"Cloning template from {self.cookiecutter_template_url}",
                                 )
                                 template_folder = os.path.join(
                                     self.cookiecutter_templates_folder,
@@ -1060,15 +1034,15 @@
                                 )
                 
                                 # checking if template had already been cloned
-                                logger.info("\tchecking if template had already been cloned")
+                                logger.info("checking if template had already been cloned")
                                 if os.path.isdir(template_folder):
-                                    logger.info(f"\tremoving template folder: {template_folder}")
+                                    logger.info(f"removing template folder: {template_folder}")
                                     shutil.rmtree(template_folder)
                 
                                 # retrieving the branch to clone
                                 # if no branch is specified, we will clone the master branch
                                 logger.info(
-                                    f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}",
+                                    f"cookiecutter_template_branch = {self.cookiecutter_template_branch}",
                                 )
                                 cookiecutter_template_branch = self.cookiecutter_template_branch
                 
@@ -1122,12 +1096,15 @@
                                 shutil.rmtree(old_service)
                                 if "metadb" not in self.conf:
                                     zcfg_file = os.path.join(
-                                        self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
+                                        self.zooservices_folder,
+                                        f"{self.service_configuration.identifier}.zcfg",
                                     )
                                     logger.info(f"removing zcfg file: {zcfg_file}")
                                     os.remove(zcfg_file)
                 
-                            logger.info(f"moving the generated service (cookiecutter) located at {path} to {self.zooservices_folder}")
+                            logger.info(
+                                f"moving the generated service (cookiecutter) located at {path} to {self.zooservices_folder}"
+                            )
                             shutil.move(path, self.zooservices_folder)
                 
                             logger.info(
@@ -1147,7 +1124,7 @@
                 
                         if "metadb" not in self.conf:
                             logger.info("metadb not found in conf")
-                            
+                
                             zcfg_file = os.path.join(
                                 self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
                             )
@@ -1155,26 +1132,11 @@
                             with open(zcfg_file, "w") as file:
                                 self.service_configuration.write_zcfg(file)
                 
-                        # # checking if service had already been deployed previously
-                        # # if yes, delete it before redeploy the new one
-                        # logger.info("checking if service had already been deployed previously")
-                        # old_service = os.path.join(
-                        #     self.zooservices_folder, self.service_configuration.identifier
-                        # )
-                        # if os.path.isdir(old_service):
-                        #     logger.info(f"removing old service: {old_service}")
-                        #     shutil.rmtree(old_service)
-                        #     if "metadb" not in self.conf:
-                        #         logger.info(f"removing zcfg file: {zcfg_file}")
-                        #         os.remove(zcfg_file)
-                
-                        if "metadb" in self.conf and not (
-                            "noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"
-                        ):
-                            logger.info("\tmetadb found in conf and noRunSql not found in conf")
+                        if self.is_consumer():
                             logger.info(
                                 "************************** This part runs on ZOO-Kernel **************************"
                             )
+                            logger.info("metadb found in conf and noRunSql not found in conf")
                             logger.info(f"Running SQL for {self.service_configuration.identifier}")
                             rSql = self.service_configuration.run_sql(conf=self.conf)
                             if not (rSql):
@@ -1183,50 +1145,6 @@
                             logger.info(
                                 "************************** End SQL ZOO-Kernel **************************"
                             )
-                
-                        # logger.info(f"path = {path}")
-                        # if path is not None:
-                            # logger.info(f"STARTING PART THAT RUNS ON ZOO-FPM")
-                            # logger.info(
-                            #     f"Starting part to copy generated service.py to {self.zooservices_folder}"
-                            # )
-                            # logger.info(f"files_and_dirs on path before = {os.listdir(path)}")
-                
-                            # logger.info(f"Copying app-package.cwl to path {path}")
-                            # app_package_file = os.path.join(
-                            #     path,
-                            #     "app-package.cwl",
-                            # )
-                
-                            # logger.info(f"files_and_dirs on path after1 = {os.listdir(path)}")
-                
-                            # logger.info("***********************************")
-                            # logger.info(f"service_tmp_folder = {self.service_tmp_folder}")
-                            # logger.info(f"path = {path}")
-                            # logger.info(f"app_package_file = {app_package_file}")
-                            # logger.info("***********************************")
-                
-                            # argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
-                            # logger.info(f"writing argo_workflow file: {app_package_file}")
-                            # with open(app_package_file, "w") as file:
-                                # yaml.dump(argo_workflow, file)
-                
-                            # logger.info(f"files_and_dirs on path after2 = {os.listdir(path)}")
-                
-                            # logger.info(f"moving the generated service (cookiecutter) located at {path} to {self.zooservices_folder}")
-                            # shutil.move(path, self.zooservices_folder)
-                
-                            # logger.info(
-                            #     f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}"
-                            # )
-                
-                            # logger.info(f"removing tmp folder {self.service_tmp_folder}")
-                            # shutil.rmtree(self.service_tmp_folder)
-                
-                            # # this is the new part. If it works, all the file manipulation above can be removed
-                            # self._save_template_job_namespace()
-                
-                            # logger.info(f"END PART THAT RUNS ON ZOO-FPM")
                 
                         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
                         logger.info(
