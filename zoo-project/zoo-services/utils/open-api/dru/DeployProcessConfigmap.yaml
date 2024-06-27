@@ -1081,11 +1081,11 @@
                                 "app-package.cwl",
                             )
                 
-                            print("***********************************")
-                            print(f"service_tmp_folder = {self.service_tmp_folder}")
-                            print(f"path = {path}")
-                            print(f"app_package_file = {app_package_file}")
-                            print("***********************************")
+                            print("***********************************", file=sys.stderr)
+                            print(f"service_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
+                            print(f"path = {path}", file=sys.stderr)
+                            print(f"app_package_file = {app_package_file}", file=sys.stderr)
+                            print("***********************************", file=sys.stderr)
                 
                             argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
                             print(f"writing argo_workflow file: {app_package_file}", file=sys.stderr)
