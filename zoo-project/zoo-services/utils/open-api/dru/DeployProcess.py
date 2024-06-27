@@ -833,15 +833,6 @@ class DeployService(object):
             service_type="Python"
         )
 
-        # self.service_configuration.service_provider = (
-        #     f"{self.service_configuration.identifier}.service"
-        # )
-        # logger.info(
-        #     f"service_provider = {self.service_configuration.service_provider}",
-        # )
-        # self.service_configuration.service_type = "Python"
-        # logger.info(f"service_type = {self.service_configuration.service_type}")
-
         logger.info(
             f"service_configuration (complete Process) = {self.service_configuration}",
         )
@@ -1190,7 +1181,6 @@ class DeployService(object):
             # Load the kube config from the default location
             # config.load_kube_config()
             config.load_config()
-            # config.load_incluster_config()
             logger.info("Connection to kubernetes cluster successful")
             logger.info("Creating a new K8s client")
             self.v1 = client.CoreV1Api()
