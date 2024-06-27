@@ -84,7 +84,7 @@
                         """
                         Creates a Process object from a dictionary representing the CWL YAML file.
                         """
-                        print(f"cwl = {cwl}", file=sys.stderr)
+                        logger.info(f"cwl = {cwl}")
                 
                         ################################################################
                         workflow_id = workflow_id or cwl.get("metadata", {}).get("name", "unknown")
@@ -99,12 +99,12 @@
                         )
                         ################################################################
                 
-                        print(f"process before = {process}", file=sys.stderr)
+                        logger.info(f"process before = {process}")
                 
-                        print("adding inputs", file=sys.stderr)
+                        logger.info("adding inputs")
                         # process.add_inputs_from_cwl(workflow.inputs, len(workflow.id)) #commenting this out will avoid validating in input and still we have the service properly deployed
                 
-                        print(f"workflow_parameters = {workflow_parameters}", file=sys.stderr)
+                        logger.info(f"workflow_parameters = {workflow_parameters}")
                         for workflow_parameter in workflow_parameters:
                             process_input = ProcessInput(
                                 identifier=workflow_parameter.get("name", "unknown"),
@@ -128,8 +128,8 @@
                 
                             process.inputs.append(process_input)
                 
-                        print(f"inputs = {process.inputs}", file=sys.stderr)
-                        print("adding outputs", file=sys.stderr)
+                        logger.info(f"inputs = {process.inputs}")
+                        logger.info("adding outputs")
                         # process.add_outputs_from_cwl(workflow.outputs, len(workflow.id))
                         out1 = ProcessOutput(
                             identifier="stac",
@@ -142,9 +142,9 @@
                         out1.is_complex = True
                         process.outputs = [out1]
                 
-                        print(f"outputs = {process.outputs}", file=sys.stderr)
+                        logger.info(f"outputs = {process.outputs}")
                 
-                        print(f"process after = {process}", file=sys.stderr)
+                        logger.info(f"process after = {process}")
                 
                         return process
                 
@@ -152,10 +152,10 @@
                         """
                         Adds a process input from a CWL input representation.
                         """
-                        print(f"add_inputs_from_cwl. trim_len = {trim_len}", file=sys.stderr)
+                        logger.info(f"add_inputs_from_cwl. trim_len = {trim_len}")
                 
                         for i, input in enumerate(inputs):
-                            print(f"input {i} = {input}", file=sys.stderr)
+                            logger.info(f"input {i} = {input}")
                             process_input = ProcessInput.create_from_cwl(input, trim_len)
                             self.inputs.append(process_input)
                 
@@ -163,9 +163,9 @@
                         """
                         Adds a process output from a CWL input representation.
                         """
-                        print(f"add_outputs_from_cwl. trim_len = {trim_len}", file=sys.stderr)
+                        logger.info(f"add_outputs_from_cwl. trim_len = {trim_len}")
                         for i, output in enumerate(outputs):
-                            print(f"output {i} = {output}", file=sys.stderr)
+                            logger.info(f"output {i} = {output}")
                             process_output = ProcessOutput.create_from_cwl(output, trim_len)
                             self.outputs.append(process_output)
                 
@@ -280,7 +280,7 @@
                         # else:
                         #     self.user = "anonymous"
                 
-                        print(f"[run_sql] user = {self.user}", file=sys.stderr)
+                        logger.info(f"[run_sql] user = {self.user}")
                 
                         conn = psycopg2.connect(
                             "host=%s port=%s dbname=%s user=%s password=%s"
@@ -295,7 +295,7 @@
                         cur = conn.cursor()
                 
                         if "orequest_method" in conf["lenv"]:
-                            print(
+                            logger.info(
                                 f"Delete from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}",
                                 file=sys.stderr,
                             )
@@ -305,7 +305,7 @@
                             )
                         conn.commit()
                 
-                        print(
+                        logger.info(
                             f"Select from DB(collectiondb.ows_process) process {self.identifier} for user {self.user}",
                             file=sys.stderr,
                         )
@@ -316,7 +316,7 @@
                 
                         vals = cur.fetchone()
                         if vals is not None:
-                            print(
+                            logger.info(
                                 f"ows_process {self.identifier} for user {self.user} already exists in DB. Returning False",
                                 file=sys.stderr,
                             )
@@ -326,7 +326,7 @@
                         # not sure why we need to commit here
                         conn.commit()
                 
-                        print(
+                        logger.info(
                             f"Inserting CollectionDB.zoo_DeploymentMetadata executable_name {self.service_provider} with type {self.service_type} into DB",
                             file=sys.stderr,
                         )
@@ -340,14 +340,14 @@
                             ).format(self.service_provider, self.service_type)
                         )
                 
-                        print(
-                            "Inserting into CollectionDB.zoo_PrivateMetadata into DB", file=sys.stderr
+                        logger.info(
+                            "Inserting into CollectionDB.zoo_PrivateMetadata into DB"
                         )
                         cur.execute(
                             "INSERT INTO CollectionDB.zoo_PrivateMetadata(id) VALUES (default);"
                         )
                 
-                        print(
+                        logger.info(
                             "Inserting into CollectionDB.zoo_DeploymentMetadataAssignment into DB",
                             file=sys.stderr,
                         )
@@ -358,7 +358,7 @@
                         )
                 
                         try:
-                            print(
+                            logger.info(
                                 f"Select user_id from public.users where name={self.user}",
                                 file=sys.stderr,
                             )
@@ -366,7 +366,7 @@
                                 "SELECT id from public.users WHERE name = $q${0}$q$".format(self.user)
                             )
                             if cur.fetchone() is None:
-                                print(
+                                logger.info(
                                     f"User {self.user} not found in public.users. Inserting user into DB",
                                     file=sys.stderr,
                                 )
@@ -376,11 +376,11 @@
                                     )
                                 )
                         except Exception as e:
-                            print("Error while inserting user into public.users", file=sys.stderr)
-                            print(e, file=sys.stderr)
+                            logger.error("Error while inserting user into public.users")
+                            logger.error(e)
                             cur.commit()
                 
-                        print(
+                        logger.info(
                             f"Inserting into CollectionDB.ows_Process identifier={self.identifier}, title={self.title}, abstract={self.description}, version={self.version}, user={self.user} into DB",
                             file=sys.stderr,
                         )
@@ -401,20 +401,20 @@
                             )
                         )
                 
-                        print("Creating temporary table pid", file=sys.stderr)
+                        logger.info("Creating temporary table pid")
                         cur.execute(
                             "CREATE TEMPORARY TABLE pid AS (select last_value as id from CollectionDB.Descriptions_id_seq);"
                         )
                 
                         # Inputs treatment
-                        print("Inserting inputs into DB", file=sys.stderr)
+                        logger.info("Inserting inputs into DB")
                         for input in self.inputs:
                             if input.is_complex:
-                                print("Complex input. Skipping", file=sys.stderr)
+                                logger.info("Complex input. Skipping")
                                 pass
                             else:
-                                print(f"inserting input = {input}", file=sys.stderr)
-                                print("Inserting into CollectionDB.LiteralDataDomain", file=sys.stderr)
+                                logger.info(f"inserting input = {input}")
+                                logger.info("Inserting into CollectionDB.LiteralDataDomain")
                                 cur.execute(
                                     "INSERT INTO CollectionDB.LiteralDataDomain (def,data_type_id) VALUES "
                                     + "(true,(SELECT id from CollectionDB.PrimitiveDatatypes where name = $q${0}$q$));".format(
@@ -423,10 +423,10 @@
                                 )
                 
                                 if input.possible_values:
-                                    print("insert input with possible values", file=sys.stderr)
+                                    logger.info("insert input with possible values")
                 
                                     for i in range(len(input.possible_values)):
-                                        print(
+                                        logger.info(
                                             f"Inserting into CollectionDB.AllowedValues {input.possible_values[i]}",
                                             file=sys.stderr,
                                         )
@@ -443,7 +443,7 @@
                                         )
                 
                                 if input.default_value:
-                                    print(
+                                    logger.info(
                                         f"insert input with default value: {input.default_value}",
                                         file=sys.stderr,
                                     )
@@ -454,7 +454,7 @@
                                         + "  ((SELECT last_value FROM CollectionDB.ows_DataDescription_id_seq));"
                                     )
                 
-                            print(
+                            logger.info(
                                 f"Inserting into CollectionDB.ows_Input identified = {input.identifier}, title = {input.title}, description = {input.description}, min_occurs = {input.min_occurs}, max_occurs = {999 if input.max_occurs == 0 else input.max_occurs}",
                                 file=sys.stderr,
                             )
@@ -482,10 +482,10 @@
                             )
                 
                         # Output treatment
-                        print("Inserting outputs into DB", file=sys.stderr)
+                        logger.info("Inserting outputs into DB")
                         for output in self.outputs:
                             if output.is_complex:
-                                print("Complex output.", file=sys.stderr)
+                                logger.info("Complex output.")
                                 cur.execute(
                                     "INSERT INTO CollectionDB.ows_Format (def,primitive_format_id) VALUES "
                                     + "(true,(SELECT id from CollectionDB.PrimitiveFormats WHERE mime_type='{0}' LIMIT 1));".format(
@@ -495,7 +495,7 @@
                                     )
                                 )
                 
-                            print(
+                            logger.info(
                                 f"Inserting into CollectionDB.ows_Output identified = {output.identifier}, title = {output.title}, description = {output.description}",
                                 file=sys.stderr,
                             )
@@ -517,10 +517,10 @@
                                 "INSERT INTO CollectionDB.ProcessOutputAssignment(process_id,output_id) VALUES((select id from pid),(select last_value as id from CollectionDB.Descriptions_id_seq));"
                             )
                 
-                        print("Dropping temporary table pid", file=sys.stderr)
+                        logger.info("Dropping temporary table pid")
                         cur.execute("DROP TABLE pid;")
                 
-                        print("Committing", file=sys.stderr)
+                        logger.info("Committing")
                         conn.commit()
                         conn.close()
                         return True
@@ -639,7 +639,7 @@
                         if input.default:
                             process_input.default_value = input.default
                 
-                        print(f"process_input = {process_input}", file=sys.stderr)
+                        logger.info(f"process_input = {process_input}")
                 
                         return process_input
                 
@@ -720,7 +720,7 @@
                 
                     @classmethod
                     def create_from_cwl(cls, output, trim_len):
-                        print("ProcessOutput.create_from_cwl", file=sys.stderr)
+                        logger.info("ProcessOutput.create_from_cwl")
                         process_output = cls(
                             output.id[trim_len + 1 :],
                             output.label,
@@ -729,7 +729,7 @@
                 
                         process_output.set_type_from_cwl(output)
                 
-                        print(f"process_output = {process_output}", file=sys.stderr)
+                        logger.info(f"process_output = {process_output}")
                 
                         return process_output
                 
@@ -801,58 +801,58 @@
                         self.outputs = outputs
                 
                         self.zooservices_folder = self.get_zoo_services_folder()
-                        print(f"\tzooservices_folder = {self.zooservices_folder}", file=sys.stderr)
+                        logger.info(f"\tzooservices_folder = {self.zooservices_folder}")
                 
                         self.cookiecutter_configuration_file = self._get_conf_value(
                             key="configurationFile", section="cookiecutter"
                         )
-                        print(f"\tgetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}", file=sys.stderr)
+                        logger.info(f"\tgetting cookiecutter_configuration_file: {self.cookiecutter_configuration_file}")
                         
                 
                         self.cookiecutter_templates_folder = self._get_conf_value(
                             key="templatesPath", section="cookiecutter"
                         )
-                        print(f"\tcookiecutter_templates_folder = {self.cookiecutter_templates_folder}", file=sys.stderr)
+                        logger.info(f"\tcookiecutter_templates_folder = {self.cookiecutter_templates_folder}")
                 
                         self.cookiecutter_template_url = self._get_conf_value(
                             key="templateUrl", section="cookiecutter"
                         )
-                        print(f"\tcookiecutter_template_url = {self.cookiecutter_template_url}", file=sys.stderr)
+                        logger.info(f"\tcookiecutter_template_url = {self.cookiecutter_template_url}")
                 
                         self.cookiecutter_template_branch = self._get_conf_value_if_exists(
                             key="templateBranch", section="cookiecutter"
                         )
-                        print(f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}", file=sys.stderr)
+                        logger.info(f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}")
                 
                         self.tmp_folder = self._get_conf_value("tmpPath")
-                        print(f"\ttmp_folder = {self.tmp_folder}", file=sys.stderr)
+                        logger.info(f"\ttmp_folder = {self.tmp_folder}")
                 
                         self.process_id = self.conf["lenv"]["usid"]
-                        print(f"\tprocess_id = {self.process_id}", file=sys.stderr)
+                        logger.info(f"\tprocess_id = {self.process_id}")
                 
                         self.service_tmp_folder = self.create_service_tmp_folder()
-                        print(f"\tservice_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
+                        logger.info(f"\tservice_tmp_folder = {self.service_tmp_folder}")
                 
                         self.cwl_content = self.get_application_package()
                         self.workflow_parameters = self.get_application_parameters_description()
-                        print(f"\tcwl_content = {self.cwl_content}", file=sys.stderr)
+                        logger.info(f"\tcwl_content = {self.cwl_content}")
                 
                         if "workflow_id" in self.conf["lenv"]:
-                            print("\tworkflow_id found in conf", file=sys.stderr)
-                            print(f"\tworkflow_id = {self.conf['lenv']['workflow_id']}", file=sys.stderr)
+                            logger.info("\tworkflow_id found in conf")
+                            logger.info(f"\tworkflow_id = {self.conf['lenv']['workflow_id']}")
                             self.service_configuration = Process.create_from_cwl(
                                 cwl=self.cwl_content,
                                 workflow_id=self.conf["lenv"]["workflow_id"],
                                 workflow_parameters=self.workflow_parameters,
                             )
                         else:
-                            print("\tworkflow_id not found in conf. Using workflow_id from service_configuration.identifier", file=sys.stderr)
+                            logger.info("\tworkflow_id not found in conf. Using workflow_id from service_configuration.identifier")
                             self.service_configuration = Process.create_from_cwl(
                                 cwl=self.cwl_content,
                                 workflow_id=None,
                                 workflow_parameters=self.workflow_parameters,
                             )
-                            print(
+                            logger.info(
                                 f"\tworkflow_id = {self.service_configuration.identifier}",
                                 file=sys.stderr,
                             )
@@ -860,16 +860,16 @@
                         self.service_configuration.service_provider = (
                             f"{self.service_configuration.identifier}.service"
                         )
-                        print(
+                        logger.info(
                             f"\tservice_provider = {self.service_configuration.service_provider}",
                             file=sys.stderr,
                         )
                         self.service_configuration.service_type = "Python"
-                        print(
-                            f"\tservice_type = {self.service_configuration.service_type}", file=sys.stderr
+                        logger.info(
+                            f"\tservice_type = {self.service_configuration.service_type}"
                         )
                 
-                        print(
+                        logger.info(
                             f"\tservice_configuration (complete Process) = {self.service_configuration}",
                             file=sys.stderr,
                         )
@@ -893,7 +893,7 @@
                             )
                         else:
                             # if no namespace is used, we will use the default services path
-                            print(self.conf["renv"], file=sys.stderr)
+                            logger.info(self.conf["renv"])
                             zooservices_folder = self._get_conf_value(
                                 key="CONTEXT_DOCUMENT_ROOT", section="renv"
                             )
@@ -904,14 +904,14 @@
                         return zooservices_folder
                 
                     def _get_conf_value(self, key, section="main"):
-                        print(section, file=sys.stderr)
+                        logger.info(section)
                         if key in self.conf[section].keys():
                             return self.conf[section][key]
                         else:
                             raise ValueError(f"{key} not set, check configuration")
                 
                     def _get_conf_value_if_exists(self, key, section="main"):
-                        print(section, file=sys.stderr)
+                        logger.info(section)
                         if key in self.conf[section].keys():
                             return self.conf[section][key]
                         else:
@@ -921,18 +921,18 @@
                     def check_write_permissions(folder):
                         if not os.access(folder, os.W_OK):
                             errorMsg = f"Cannot write to {folder}. Please check folder"
-                            print(errorMsg, file=sys.stderr)
+                            logger.info(errorMsg)
                             raise Exception(errorMsg)
                 
                     def create_service_tmp_folder(self):
                         # creating the folder where we will download the applicationPackage
-                        print("creating the folder where we will download the applicationPackage", file=sys.stderr)
+                        logger.info("creating the folder where we will download the applicationPackage")
                         tmp_path = os.path.join(self.tmp_folder, f"DeployProcess-{self.process_id}")
                         try:
-                            print(f"Creating tmp_path: {tmp_path}", file=sys.stderr)
+                            logger.info(f"Creating tmp_path: {tmp_path}")
                             os.makedirs(tmp_path, exist_ok=True)
                         except Exception as e:
-                            print(e, file=sys.stderr)
+                            logger.error(e)
                 
                         return tmp_path
                 
@@ -959,23 +959,23 @@
                         return parameters
                 
                     def generate_service(self):
-                        print("Starting service generation *********************************************", file=sys.stderr)
+                        logger.info("Starting service generation *********************************************")
                         path = None
-                        print(f"\tconf[lenv] = {self.conf['lenv']}", file=sys.stderr)
+                        logger.info(f"\tconf[lenv] = {self.conf['lenv']}")
                         
                         if "noRunSql" in self.conf["lenv"]:
                             # This part runs on ZOO-FPM
-                            print("************************** This part runs on ZOO-FPM **************************", file=sys.stderr)
-                            print("\tnoRunSql found in conf", file=sys.stderr)
+                            logger.info("************************** This part runs on ZOO-FPM **************************")
+                            logger.info("\tnoRunSql found in conf")
                 
                             # checking if the template location is remote or local
-                            print(
+                            logger.info(
                                 f"\tcookiecutter_template_url = {self.cookiecutter_template_url}",
                                 file=sys.stderr,
                             )
                 
                             if self.cookiecutter_template_url.endswith(".git"):
-                                print(
+                                logger.info(
                                     f"\tCloning template from {self.cookiecutter_template_url}",
                                     file=sys.stderr,
                                 )
@@ -985,21 +985,21 @@
                                 )
                 
                                 # checking if template had already been cloned
-                                print("\tchecking if template had already been cloned", file=sys.stderr)
+                                logger.info("\tchecking if template had already been cloned")
                                 if os.path.isdir(template_folder):
-                                    print(f"\tremoving template folder: {template_folder}", file=sys.stderr)
+                                    logger.info(f"\tremoving template folder: {template_folder}")
                                     shutil.rmtree(template_folder)
                 
                                 # retrieving the branch to clone
                                 # if no branch is specified, we will clone the master branch
-                                print(
+                                logger.info(
                                     f"\tcookiecutter_template_branch = {self.cookiecutter_template_branch}",
                                     file=sys.stderr,
                                 )
                                 cookiecutter_template_branch = self.cookiecutter_template_branch
                 
                                 # cloning the template
-                                print(
+                                logger.info(
                                     f"Cloning template from {self.cookiecutter_template_url}",
                                     file=sys.stderr,
                                 )
@@ -1024,7 +1024,7 @@
                             }
                 
                             # Create project from template
-                            print(f"Creating project from template {template_folder}", file=sys.stderr)
+                            logger.info(f"Creating project from template {template_folder}")
                             path = cookiecutter(
                                 template_folder,
                                 extra_context=cookiecutter_values,
@@ -1033,42 +1033,42 @@
                                 overwrite_if_exists=True,
                                 config_file=self.cookiecutter_configuration_file,
                             )
-                            print("Cookiecutter done", file=sys.stderr)
-                            print(f"path = {path}", file=sys.stderr)
+                            logger.info("Cookiecutter done")
+                            logger.info(f"path = {path}")
                             path_files_and_dirs = os.listdir(path)
-                            print(f"files_and_dirs on path = {path_files_and_dirs}", file=sys.stderr)
-                            print("************************** End part that runs on ZOO-FPM **************************", file=sys.stderr)
+                            logger.info(f"files_and_dirs on path = {path_files_and_dirs}")
+                            logger.info("************************** End part that runs on ZOO-FPM **************************")
                 
                         if "metadb" not in self.conf:
-                            print("metadb not found in conf", file=sys.stderr)
+                            logger.info("metadb not found in conf")
                             zcfg_file = os.path.join(
                                 self.zooservices_folder, f"{self.service_configuration.identifier}.zcfg"
                             )
-                            print(f"writting zcfg file: {zcfg_file}", file=sys.stderr)
+                            logger.info(f"writting zcfg file: {zcfg_file}")
                             with open(zcfg_file, "w") as file:
                                 self.service_configuration.write_zcfg(file)
                 
                         # checking if service had already been deployed previously
                         # if yes, delete it before redeploy the new one
-                        print(
-                            "checking if service had already been deployed previously", file=sys.stderr
+                        logger.info(
+                            "checking if service had already been deployed previously"
                         )
                         old_service = os.path.join(
                             self.zooservices_folder, self.service_configuration.identifier
                         )
                         if os.path.isdir(old_service):
-                            print(f"removing old service: {old_service}", file=sys.stderr)
+                            logger.info(f"removing old service: {old_service}")
                             shutil.rmtree(old_service)
                             if "metadb" not in self.conf:
-                                print(f"removing zcfg file: {zcfg_file}", file=sys.stderr)
+                                logger.info(f"removing zcfg file: {zcfg_file}")
                                 os.remove(zcfg_file)
                 
                         if "metadb" in self.conf and not (
                             "noRunSql" in self.conf["lenv"] and self.conf["lenv"]["noRunSql"] != "false"
                         ):
-                            print("\tmetadb found in conf and noRunSql not found in conf", file=sys.stderr)
-                            print("************************** This part runs on ZOO-Kernel **************************", file=sys.stderr)
-                            print(
+                            logger.info("\tmetadb found in conf and noRunSql not found in conf")
+                            logger.info("************************** This part runs on ZOO-Kernel **************************")
+                            logger.info(
                                 f"Running SQL for {self.service_configuration.identifier}",
                                 file=sys.stderr,
                             )
@@ -1076,53 +1076,53 @@
                             if not (rSql):
                                 return False
                             
-                            print("************************** End SQL ZOO-Kernel **************************", file=sys.stderr)
+                            logger.info("************************** End SQL ZOO-Kernel **************************")
                 
-                        print(f"path = {path}", file=sys.stderr)
+                        logger.info(f"path = {path}")
                         if path is not None:
-                            print(f"STARTING PART THAT RUNS ON ZOO-FPM", file=sys.stderr)
-                            print(f"Starting part to copy generated service.py to {self.zooservices_folder}", file=sys.stderr)
-                            print(f"files_and_dirs on path before = {os.listdir(path)}", file=sys.stderr)
+                            logger.info(f"STARTING PART THAT RUNS ON ZOO-FPM")
+                            logger.info(f"Starting part to copy generated service.py to {self.zooservices_folder}")
+                            logger.info(f"files_and_dirs on path before = {os.listdir(path)}")
                 
-                            print(f"Copying app-package.cwl to path {path}", file=sys.stderr)
+                            logger.info(f"Copying app-package.cwl to path {path}")
                             app_package_file = os.path.join(
                                 path,
                                 "app-package.cwl",
                             )
                 
-                            print(f"files_and_dirs on path after1 = {os.listdir(path)}", file=sys.stderr)
+                            logger.info(f"files_and_dirs on path after1 = {os.listdir(path)}")
                 
-                            print("***********************************", file=sys.stderr)
-                            print(f"service_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
-                            print(f"path = {path}", file=sys.stderr)
-                            print(f"app_package_file = {app_package_file}", file=sys.stderr)
-                            print("***********************************", file=sys.stderr)
+                            logger.info("***********************************")
+                            logger.info(f"service_tmp_folder = {self.service_tmp_folder}")
+                            logger.info(f"path = {path}")
+                            logger.info(f"app_package_file = {app_package_file}")
+                            logger.info("***********************************")
                 
                             argo_workflow = yaml.safe_load(self.inputs["applicationPackage"]["value"])
-                            print(f"writing argo_workflow file: {app_package_file}", file=sys.stderr)
+                            logger.info(f"writing argo_workflow file: {app_package_file}")
                             with open(app_package_file, "w") as file:
                                 # yaml.dump(self.cwl_content, file)
                                 yaml.dump(argo_workflow, file)
                 
-                            print(f"files_and_dirs on path after2 = {os.listdir(path)}", file=sys.stderr)
+                            logger.info(f"files_and_dirs on path after2 = {os.listdir(path)}")
                 
-                            print(f"moving {path} to {self.zooservices_folder}", file=sys.stderr)
+                            logger.info(f"moving {path} to {self.zooservices_folder}")
                             shutil.move(path, self.zooservices_folder)
                 
-                            print(f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}", file=sys.stderr)
+                            logger.info(f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}")
                 
-                            print(f"removing tmp folder {self.service_tmp_folder}", file=sys.stderr)
+                            logger.info(f"removing tmp folder {self.service_tmp_folder}")
                             shutil.rmtree(self.service_tmp_folder)
-                            print(f"END PART THAT RUNS ON ZOO-FPM", file=sys.stderr)
+                            logger.info(f"END PART THAT RUNS ON ZOO-FPM")
                 
                         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
-                        print(
+                        logger.info(
                             f"deployedServiceId = {self.conf['lenv']['deployedServiceId']}",
                             file=sys.stderr,
                         )
                 
-                        print("Service successfully deployed", file=sys.stderr)
-                        print("End service generation *********************************************", file=sys.stderr)
+                        logger.info("Service successfully deployed")
+                        logger.info("End service generation *********************************************")
                         return True
                 
                 
@@ -1144,47 +1144,47 @@
                 
                 
                 def check_k8s_connection(conf):
-                    print("Checking connection to kubernetes cluster", file=sys.stderr)
+                    logger.info("Checking connection to kubernetes cluster")
                     try:
                         from kubernetes import config, client
-                        print("Import kubernetes successful", file=sys.stderr)
+                        logger.info("Import kubernetes successful")
                 
                         # setting the environment variables
-                        print("Setting environment variables", file=sys.stderr)
+                        logger.info("Setting environment variables")
                         try:
-                            print("conf = ", file=sys.stderr)
-                            print(json.dumps(conf, indent=2), file=sys.stderr)
-                            print("env = ", file=sys.stderr)
-                            print(os.environ, file=sys.stderr)
+                            logger.info("conf = ")
+                            logger.info(json.dumps(conf, indent=2))
+                            logger.info("env = ")
+                            logger.info(os.environ)
                         except Exception as e:
-                            print(e, file=sys.stderr)
+                            logger.info(e)
                 
                         os.environ["KUBERNETES_SERVICE_HOST"] = conf["renv"]["KUBERNETES_SERVICE_HOST"]
                         os.environ["KUBERNETES_SERVICE_PORT"] = conf["renv"]["KUBERNETES_SERVICE_PORT"]
                 
-                        print(f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}", file=sys.stderr)
-                        print(f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}", file=sys.stderr)
+                        logger.info(f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}")
+                        logger.info(f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}")
                 
                         # remove HTTP_PROXY from the environment
                         os.environ.pop("HTTP_PROXY", None)
-                        print("HTTP_PROXY removed from environment", file=sys.stderr)
+                        logger.info("HTTP_PROXY removed from environment")
                 
                         # Load the kube config from the default location
                         # config.load_kube_config()
                         # config.load_config()
                         config.load_incluster_config()
-                        print("Connection to kubernetes cluster successful", file=sys.stderr)
+                        logger.info("Connection to kubernetes cluster successful")
                         v1 = client.CoreV1Api()
-                        print("Listing pods with their IPs:", file=sys.stderr)
+                        logger.info("Listing pods with their IPs:")
                         ret = v1.list_pod_for_all_namespaces(watch=False)
                         for i in ret.items:
-                            print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name), file=sys.stderr)
+                            logger.info("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
                 
                     except Exception as e:
-                        print("Error while checking connection to kubernetes cluster", file=sys.stderr)
-                        print(e, file=sys.stderr)
+                        logger.error("Error while checking connection to kubernetes cluster")
+                        logger.error(e)
                     finally:
-                        print("End check kubernetes cluster connection", file=sys.stderr)
+                        logger.info("End check kubernetes cluster connection")
                 
                 
                 def DeployProcess(conf, inputs, outputs):
@@ -1203,13 +1203,13 @@
                                 lInputs["applicationPackage"]["mimeType"] = inputs[
                                     "applicationPackage"
                                 ]["mimeType"][i]
-                                print(f"************************* Deploying service {i} *************************", file=sys.stderr)
+                                logger.info(f"************************* Deploying service {i} *************************")
                                 deploy_process = DeployService(conf, lInputs, outputs)
                                 res = deploy_process.generate_service()
                                 if not (res):
                                     return duplicateMessage(conf, deploy_process)
                         else:
-                            print("************************* Deploying service *************************", file=sys.stderr)
+                            logger.info("************************* Deploying service *************************")
                             deploy_process = DeployService(conf, inputs, outputs)
                 
                             res = deploy_process.generate_service()
@@ -1223,16 +1223,16 @@
                             "status": "success",
                         }
                 
-                        print(
+                        logger.info(
                             f"Service {deploy_process.service_configuration.identifier} version {deploy_process.service_configuration.version} successfully deployed.",
                             file=sys.stderr,
                         )
-                        print(f"response = {json.dumps(response_json, indent=2)}", file=sys.stderr)
+                        logger.info(f"response = {json.dumps(response_json, indent=2)}")
                         outputs["Result"]["value"] = json.dumps(response_json)
-                        print(f"outputs = {json.dumps(outputs, indent=2)}", file=sys.stderr)
+                        logger.info(f"outputs = {json.dumps(outputs, indent=2)}")
                         return zoo.SERVICE_DEPLOYED
                     except Exception as e:
-                        print("Exception in Python service", file=sys.stderr)
-                        print(e, file=sys.stderr)
+                        logger.error("Exception in Python service")
+                        logger.error(e)
                         conf["lenv"]["message"] = str(e)
                         return zoo.SERVICE_FAILED
