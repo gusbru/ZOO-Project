@@ -40,7 +40,7 @@ from cookiecutter.main import cookiecutter
 logging.basicConfig(
     stream=sys.stderr,
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s:%(lineno)d - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
