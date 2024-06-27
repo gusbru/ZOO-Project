@@ -37,7 +37,6 @@
                 from pathlib import Path
                 from collections import namedtuple
                 import logging
-                from time import sleep
                 
                 import zoo
                 import yaml
@@ -51,6 +50,56 @@
                     format="%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s:%(lineno)d - %(message)s",
                 )
                 logger = logging.getLogger(__name__)
+                
+                def check_k8s_connection():
+                    logger.info("Checking connection to kubernetes cluster")
+                    try:
+                        from kubernetes import config, client
+                
+                        logger.info("Import kubernetes successful")
+                
+                        # setting the environment variables
+                        # logger.info("Setting environment variables")
+                        # try:
+                        #     logger.info("conf = ")
+                        #     logger.info(json.dumps(conf, indent=2))
+                        #     logger.info("env = ")
+                        #     logger.info(os.environ)
+                        # except Exception as e:
+                        #     logger.info(e)
+                
+                        # os.environ["KUBERNETES_SERVICE_HOST"] = conf["renv"]["KUBERNETES_SERVICE_HOST"]
+                        # os.environ["KUBERNETES_SERVICE_PORT"] = conf["renv"]["KUBERNETES_SERVICE_PORT"]
+                
+                        # logger.info(
+                        #     f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}"
+                        # )
+                        # logger.info(
+                        #     f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}"
+                        # )
+                
+                        # remove HTTP_PROXY from the environment
+                        os.environ.pop("HTTP_PROXY", None)
+                        logger.info("HTTP_PROXY removed from environment")
+                
+                        # Load the kube config from the default location
+                        # config.load_kube_config()
+                        config.load_config()
+                        # config.load_incluster_config()
+                        logger.info("Connection to kubernetes cluster successful")
+                        v1 = client.CoreV1Api()
+                        logger.info("Listing pods with their IPs:")
+                        ret = v1.list_pod_for_all_namespaces(watch=False)
+                        for i in ret.items:
+                            logger.info(
+                                "%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name)
+                            )
+                
+                    except Exception as e:
+                        logger.error("Error while checking connection to kubernetes cluster")
+                        logger.error(e)
+                    finally:
+                        logger.info("End check kubernetes cluster connection")
                 
                 
                 class Process:
@@ -1038,8 +1087,7 @@
                             logger.info(f"path = {path}")
                             path_files_and_dirs = os.listdir(path)
                             logger.info(f"files_and_dirs on path = {path_files_and_dirs}")
-                            logger.info("I'm so tired... I'll sleep now")
-                            sleep(20)
+                            check_k8s_connection()
                             logger.info(
                                 "************************** End part that runs on ZOO-FPM **************************"
                             )
@@ -1150,57 +1198,6 @@
                         "A service with the same identifier is already deployed"
                     )
                     return zoo.SERVICE_FAILED
-                
-                
-                def check_k8s_connection(conf):
-                    logger.info("Checking connection to kubernetes cluster")
-                    try:
-                        from kubernetes import config, client
-                
-                        logger.info("Import kubernetes successful")
-                
-                        # setting the environment variables
-                        logger.info("Setting environment variables")
-                        try:
-                            logger.info("conf = ")
-                            logger.info(json.dumps(conf, indent=2))
-                            logger.info("env = ")
-                            logger.info(os.environ)
-                        except Exception as e:
-                            logger.info(e)
-                
-                        os.environ["KUBERNETES_SERVICE_HOST"] = conf["renv"]["KUBERNETES_SERVICE_HOST"]
-                        os.environ["KUBERNETES_SERVICE_PORT"] = conf["renv"]["KUBERNETES_SERVICE_PORT"]
-                
-                        logger.info(
-                            f"KUBERNETES_SERVICE_HOST = {os.environ['KUBERNETES_SERVICE_HOST']}"
-                        )
-                        logger.info(
-                            f"KUBERNETES_SERVICE_PORT = {os.environ['KUBERNETES_SERVICE_PORT']}"
-                        )
-                
-                        # remove HTTP_PROXY from the environment
-                        os.environ.pop("HTTP_PROXY", None)
-                        logger.info("HTTP_PROXY removed from environment")
-                
-                        # Load the kube config from the default location
-                        # config.load_kube_config()
-                        # config.load_config()
-                        config.load_incluster_config()
-                        logger.info("Connection to kubernetes cluster successful")
-                        v1 = client.CoreV1Api()
-                        logger.info("Listing pods with their IPs:")
-                        ret = v1.list_pod_for_all_namespaces(watch=False)
-                        for i in ret.items:
-                            logger.info(
-                                "%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name)
-                            )
-                
-                    except Exception as e:
-                        logger.error("Error while checking connection to kubernetes cluster")
-                        logger.error(e)
-                    finally:
-                        logger.info("End check kubernetes cluster connection")
                 
                 
                 def DeployProcess(conf, inputs, outputs):
