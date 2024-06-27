@@ -788,7 +788,7 @@ def get_s3_settings():
 
 class DeployService(object):
     def __init__(self, conf, inputs, outputs):
-        logger("Starting DeployService *********************************************")
+        logger.info("Starting DeployService *********************************************")
         self.conf = conf
         self.inputs = inputs
         self.outputs = outputs
@@ -870,7 +870,7 @@ class DeployService(object):
         self.conf["lenv"]["workflow_id"] = self.service_configuration.identifier
         self.conf["lenv"]["service_name"] = self.service_configuration.identifier
 
-        logger("End initializing DeployService *********************************************")
+        logger.info("End initializing DeployService *********************************************")
 
     def get_zoo_services_folder(self):
         # checking for namespace
