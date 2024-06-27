@@ -44,6 +44,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+# TODO: delete this function
 def check_k8s_connection():
     logger.info("Checking connection to kubernetes cluster")
     try:
@@ -838,6 +840,18 @@ class DeployService(object):
         self.conf = conf
         self.inputs = inputs
         self.outputs = outputs
+        self.workflow_manifest = None
+        self.workspace_prefix = conf.get("eoepca", {}).get("workspace_prefix", "ws")
+        self.namespace = conf.get("zooServicesNamespace", {}).get("namespace", "")
+        self.job_workspace_suffix = conf.get("eoepca", {}).get(
+            "job_workspace_suffix", "job"
+        )
+        self.job_namespace = (
+            f"{self.workspace_prefix}-{self.namespace}-{self.job_workspace_suffix}"
+        )
+        self.v1 = None
+        self.rbac_v1 = None
+        self.custom_api = None
 
         self.zooservices_folder = self.get_zoo_services_folder()
         logger.info(f"\tzooservices_folder = {self.zooservices_folder}")
@@ -922,6 +936,11 @@ class DeployService(object):
             "End initializing DeployService *********************************************"
         )
 
+    def is_worker(self):
+        no_run_sql = "noRunSql" in self.conf["lenv"]
+        logger.info(f"Checking if we are in a worker (zoo-fpm): {no_run_sql}")
+        return no_run_sql
+
     def get_zoo_services_folder(self):
         # checking for namespace
         if (
@@ -990,6 +1009,8 @@ class DeployService(object):
         # delete key parameters
         argo_workflow.pop("parameters", None)
 
+        self.workflow_manifest = argo_workflow
+
         return argo_workflow
 
     def get_application_parameters_description(self) -> list:
@@ -1008,12 +1029,14 @@ class DeployService(object):
         path = None
         logger.info(f"\tconf[lenv] = {self.conf['lenv']}")
 
-        if "noRunSql" in self.conf["lenv"]:
+        if self.is_worker():
             # This part runs on ZOO-FPM
             logger.info(
                 "************************** This part runs on ZOO-FPM **************************"
             )
             logger.info("\tnoRunSql found in conf")
+
+            self.init_kubernetes()
 
             # checking if the template location is remote or local
             logger.info(
@@ -1080,7 +1103,6 @@ class DeployService(object):
             logger.info(f"path = {path}")
             path_files_and_dirs = os.listdir(path)
             logger.info(f"files_and_dirs on path = {path_files_and_dirs}")
-            check_k8s_connection()
             logger.info(
                 "************************** End part that runs on ZOO-FPM **************************"
             )
@@ -1162,6 +1184,10 @@ class DeployService(object):
 
             logger.info(f"removing tmp folder {self.service_tmp_folder}")
             shutil.rmtree(self.service_tmp_folder)
+
+            # this is the new part. If it works, all the file manipulation above can be removed
+            self._save_template_job_namespace()
+
             logger.info(f"END PART THAT RUNS ON ZOO-FPM")
 
         self.conf["lenv"]["deployedServiceId"] = self.service_configuration.identifier
@@ -1174,6 +1200,67 @@ class DeployService(object):
             "End service generation *********************************************"
         )
         return True
+
+    def _save_template_job_namespace(self):
+        name = self.workflow_manifest["metadata"]["name"].lower()
+        version = self.workflow_manifest["metadata"]["version"]
+
+        logger.info(
+            f"Saving template {name}-{version} on namespace {self.job_namespace}"
+        )
+
+        self.workflow_manifest["metadata"]["name"] = f"{name}-{version}"
+        self.workflow_manifest["metadata"] = {
+            **self.workflow_manifest["metadata"],
+            "namespace": self.job_namespace,
+            "resourceVersion": version,
+        }
+
+        # save workflow template
+        try:
+            # Create the template
+            workflow_template_name = self.workflow_manifest["metadata"]["name"]
+            logger.info(
+                f"Creating workflow template {workflow_template_name} on namespace {self.job_namespace}"
+            )
+
+            self.custom_api.create_namespaced_custom_object(
+                group="argoproj.io",
+                version="v1alpha1",
+                namespace=self.job_namespace,
+                plural="workflowtemplates",
+                body=self.workflow_manifest,
+            )
+            logger.info(
+                f"Workflow template {workflow_template_name} created successfully"
+            )
+        except Exception as e:
+            logger.error(f"Error saving template: {e}")
+            raise e
+
+    def init_kubernetes(self):
+        try:
+            from kubernetes import config, client
+
+            # remove HTTP_PROXY from the environment
+            os.environ.pop("HTTP_PROXY", None)
+            logger.info("HTTP_PROXY removed from environment")
+
+            # Load the kube config from the default location
+            # config.load_kube_config()
+            config.load_config()
+            # config.load_incluster_config()
+            logger.info("Connection to kubernetes cluster successful")
+            logger.info("Creating a new K8s client")
+            self.v1 = client.CoreV1Api()
+            self.rbac_v1 = client.RbacAuthorizationV1Api()
+            self.custom_api = client.CustomObjectsApi()
+
+        except Exception as e:
+            logger.error("Error while checking connection to kubernetes cluster")
+            logger.error(e)
+        finally:
+            logger.info("End check kubernetes cluster connection")
 
 
 def duplicateMessage(conf, deploy_process):
