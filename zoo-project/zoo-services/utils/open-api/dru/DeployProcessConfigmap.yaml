@@ -1029,8 +1029,8 @@
                             )
                             print("Cookiecutter done", file=sys.stderr)
                             print(f"path = {path}", file=sys.stderr)
-                            files_and_dirs = os.listdir(path)
-                            print(f"files_and_dirs on path = {files_and_dirs}", file=sys.stderr)
+                            path_files_and_dirs = os.listdir(path)
+                            print(f"files_and_dirs on path = {path_files_and_dirs}", file=sys.stderr)
                             print("************************** End part that runs on ZOO-FPM **************************", file=sys.stderr)
                 
                         if "metadb" not in self.conf:
@@ -1075,11 +1075,15 @@
                         print(f"Starting part to copy generated service.py to {self.zooservices_folder}", file=sys.stderr)
                         print(f"path = {path}", file=sys.stderr)
                         if path is not None:
+                            print(f"files_and_dirs on path before = {os.listdir(path)}", file=sys.stderr)
+                
                             print(f"Copying app-package.cwl to path {path}", file=sys.stderr)
                             app_package_file = os.path.join(
                                 path,
                                 "app-package.cwl",
                             )
+                
+                            print(f"files_and_dirs on path after1 = {os.listdir(path)}", file=sys.stderr)
                 
                             print("***********************************", file=sys.stderr)
                             print(f"service_tmp_folder = {self.service_tmp_folder}", file=sys.stderr)
@@ -1093,8 +1097,12 @@
                                 # yaml.dump(self.cwl_content, file)
                                 yaml.dump(argo_workflow, file)
                 
+                            print(f"files_and_dirs on path after2 = {os.listdir(path)}", file=sys.stderr)
+                
                             print(f"moving {path} to {self.zooservices_folder}", file=sys.stderr)
                             shutil.move(path, self.zooservices_folder)
+                
+                            print(f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}", file=sys.stderr)
                 
                             print(f"removing tmp folder {self.service_tmp_folder}", file=sys.stderr)
                             # shutil.rmtree(self.service_tmp_folder)
