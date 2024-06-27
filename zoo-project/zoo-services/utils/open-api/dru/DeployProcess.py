@@ -1065,6 +1065,8 @@ class DeployService(object):
             
             print("************************** End SQL ZOO-Kernel **************************", file=sys.stderr)
 
+        print(f"Starting part to copy generated service.py to {self.zooservices_folder}", file=sys.stderr)
+        print(f"path = {path}", file=sys.stderr)
         if path is not None:
             print(f"Copying app-package.cwl to path {path}", file=sys.stderr)
             app_package_file = os.path.join(
