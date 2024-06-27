@@ -1103,8 +1103,6 @@ class DeployService(object):
             logger.info(f"path = {path}")
             path_files_and_dirs = os.listdir(path)
             logger.info(f"files_and_dirs on path = {path_files_and_dirs}")
-            logger.info(f"moving the generated service (cookiecutter) located at {path} to {self.zooservices_folder}")
-            shutil.move(path, self.zooservices_folder)
 
             # checking if service had already been deployed previously
             # if yes, delete it before redeploy the new one
@@ -1122,15 +1120,19 @@ class DeployService(object):
                     logger.info(f"removing zcfg file: {zcfg_file}")
                     os.remove(zcfg_file)
 
+            logger.info(f"moving the generated service (cookiecutter) located at {path} to {self.zooservices_folder}")
+            shutil.move(path, self.zooservices_folder)
+
             logger.info(
                 f"files_and_dirs on {self.zooservices_folder} after moving = {os.listdir(self.zooservices_folder)}"
             )
 
-            logger.info(f"removing tmp folder {self.service_tmp_folder}")
-            shutil.rmtree(self.service_tmp_folder)
-
             # this is the new part. If it works, all the file manipulation above can be removed
             self._save_template_job_namespace()
+
+            # clean up
+            logger.info(f"removing tmp folder {self.service_tmp_folder}")
+            shutil.rmtree(self.service_tmp_folder)
 
             logger.info(
                 "************************** End part that runs on ZOO-FPM **************************"
