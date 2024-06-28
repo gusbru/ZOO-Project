@@ -1138,10 +1138,9 @@ class DeployService(object):
         version = self.workflow_manifest["metadata"]["version"]
 
         logger.info(
-            f"Saving template {name}-{version} on namespace {self.job_namespace}"
+            f"Saving template {name} on namespace {self.job_namespace}"
         )
 
-        self.workflow_manifest["metadata"]["name"] = f"{name}-{version}"
         self.workflow_manifest["metadata"] = {
             **self.workflow_manifest["metadata"],
             "namespace": self.job_namespace,
