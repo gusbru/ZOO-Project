@@ -77,7 +77,9 @@ class Process:
         return f"Process(\n\tidentifier={self.identifier}, \n\tversion={self.version}, \n\ttitle={self.title}, \n\tdescription={self.description}, \n\tstore_supported={self.store_supported}, \n\tstatus_supported={self.status_supported}, \n\tservice_type={self.service_type}, \n\tservice_provider={self.service_provider}, \n\tversion={self.version}, \n\tinputs={self.inputs}, \n\toutputs={self.outputs})"
 
     @classmethod
-    def create_from_cwl(cls, cwl, workflow_id=None, workflow_parameters=[], service_type=None):
+    def create_from_cwl(
+        cls, cwl, workflow_id=None, workflow_parameters=[], service_type=None
+    ):
         """
         Creates a Process object from a dictionary representing the CWL YAML file.
         """
@@ -811,6 +813,7 @@ class DeployService(object):
         self.v1 = None
         self.rbac_v1 = None
         self.custom_api = None
+        self.is_global_namespace = self._is_global_namespace()
 
         self.init_cookiecutter()
 
@@ -819,18 +822,20 @@ class DeployService(object):
         logger.info(f"cwl_content = {self.cwl_content}")
 
         logger.info("Creating Process object from Argo Workflow")
-        
+
         # conf["lenv"].get("workflow_id") is defined by the URL parameter ?w=<workflow_id>
         # if not defined, it will be the Argo Workflow name (metadata.name)
         # Deprecating the use of workflow_id passed as a URL parameter
         if self.conf["lenv"].get("workflow_id") is not None:
-            logger.warning("workflow_id passing through URL parameter is deprecated. Use Argo Workflow metadata name instead.")
+            logger.warning(
+                "workflow_id passing through URL parameter is deprecated. Use Argo Workflow metadata name instead."
+            )
 
         self.service_configuration = Process.create_from_cwl(
             cwl=self.cwl_content,
             # workflow_id=self.conf["lenv"].get("workflow_id"),
             workflow_parameters=self.workflow_parameters,
-            service_type="Python"
+            service_type="Python",
         )
 
         logger.info(
@@ -978,6 +983,12 @@ class DeployService(object):
         parameters = argo_workflow.get("parameters", [])
 
         return parameters
+
+    def _is_global_namespace(self):
+        cwd = self.conf["lenv"]["cwd"]
+        is_global = cwd == "/usr/lib/cgi-bin"
+        logger.info(f"Deploying on a global namespace? {is_global}")
+        return is_global
 
     def generate_service(self):
         logger.info(
@@ -1134,17 +1145,25 @@ class DeployService(object):
         return True
 
     def _save_template_job_namespace(self):
+        from kubernetes.client.rest import ApiException
+
         name = self.workflow_manifest["metadata"]["name"].lower()
         version = self.workflow_manifest["metadata"]["version"]
 
         logger.info(
-            f"Saving template {name} on namespace {self.job_namespace}"
+            f"Saving template {name} with version {version} on namespace {self.job_namespace}"
+        )
+
+        workflow_namespace = (
+            "default" if self.is_global_namespace else self.job_namespace
         )
 
         self.workflow_manifest["metadata"] = {
             **self.workflow_manifest["metadata"],
-            "namespace": self.job_namespace,
-            "resourceVersion": version,
+            "namespace": workflow_namespace,
+            "labels": {
+                "version": version,
+            },
         }
 
         # save workflow template
@@ -1152,19 +1171,49 @@ class DeployService(object):
             # Create the template
             workflow_template_name = self.workflow_manifest["metadata"]["name"]
             logger.info(
-                f"Creating workflow template {workflow_template_name} on namespace {self.job_namespace}"
+                f"Creating workflow template {workflow_template_name} on namespace {workflow_namespace}"
             )
 
-            self.custom_api.create_namespaced_custom_object(
-                group="argoproj.io",
-                version="v1alpha1",
-                namespace=self.job_namespace,
-                plural="workflowtemplates",
-                body=self.workflow_manifest,
-            )
-            logger.info(
-                f"Workflow template {workflow_template_name} created successfully"
-            )
+            try:
+                logger.info(f"Trying to get the existing workflow template {workflow_template_name}")
+                # try to get the existing custom object
+                existing_template = self.custom_api.get_namespaced_custom_object(
+                    group="argoproj.io",
+                    version="v1alpha1",
+                    namespace=workflow_namespace,
+                    plural="workflowtemplates",
+                    name=workflow_template_name,
+                )
+
+                logger.info(f"Existing workflow template {workflow_template_name} found")
+                # if it exists, update it
+                self.custom_api.replace_namespaced_custom_object(
+                    group="argoproj.io",
+                    version="v1alpha1",
+                    namespace=workflow_namespace,
+                    plural="workflowtemplates",
+                    name=workflow_template_name,
+                    body=self.workflow_manifest,
+                )
+
+                logger.info(f"Workflow template {workflow_template_name} updated successfully")
+            except ApiException as e:
+                if e.status != 404:
+                    self.logger.error(f"Error getting existing template: {e}")
+                    raise e
+
+                logger.info(f"Existing workflow template {workflow_template_name} not found. Creating a new one")
+                self.custom_api.create_namespaced_custom_object(
+                    group="argoproj.io",
+                    version="v1alpha1",
+                    namespace=workflow_namespace,
+                    plural="workflowtemplates",
+                    body=self.workflow_manifest,
+                )
+                
+                logger.info(
+                    f"Workflow template {workflow_template_name} created successfully"
+                )
         except Exception as e:
             logger.error(f"Error saving template: {e}")
             raise e
