@@ -1185,6 +1185,11 @@ class DeployService(object):
                     name=workflow_template_name,
                 )
 
+                self.workflow_manifest["metadata"] = {
+                    **self.workflow_manifest["metadata"],
+                    "resourceVersion": existing_template["metadata"]["resourceVersion"],
+                }
+
                 logger.info(f"Existing workflow template {workflow_template_name} found")
                 
                 # if it exists, update it
@@ -1200,7 +1205,7 @@ class DeployService(object):
                 logger.info(f"Workflow template {workflow_template_name} updated successfully")
             except ApiException as e:
                 if e.status != 404:
-                    logger.error(f"Error getting existing template: {e}")
+                    logger.error(f"Error updating existing template: {e}")
                     raise e
 
                 logger.info(f"Existing workflow template {workflow_template_name} not found. Creating a new one")
