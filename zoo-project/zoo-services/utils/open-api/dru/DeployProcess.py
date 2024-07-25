@@ -1186,6 +1186,7 @@ class DeployService(object):
                 )
 
                 logger.info(f"Existing workflow template {workflow_template_name} found")
+                
                 # if it exists, update it
                 self.custom_api.replace_namespaced_custom_object(
                     group="argoproj.io",
@@ -1199,7 +1200,7 @@ class DeployService(object):
                 logger.info(f"Workflow template {workflow_template_name} updated successfully")
             except ApiException as e:
                 if e.status != 404:
-                    self.logger.error(f"Error getting existing template: {e}")
+                    logger.error(f"Error getting existing template: {e}")
                     raise e
 
                 logger.info(f"Existing workflow template {workflow_template_name} not found. Creating a new one")
