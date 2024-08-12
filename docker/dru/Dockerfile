@@ -6,7 +6,7 @@ FROM ubuntu:20.04
 # docker run --rm -ti -p 80:80  ades:latest
 
 # procadesdev:latest
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 ARG CONDA_ENV_FILE=""
 ARG CONDA_ENV_NAME=ades-dev
 
